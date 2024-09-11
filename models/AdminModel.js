@@ -2,6 +2,12 @@ import { Sequelize } from "sequelize";
 import db from "../config/Database.js";
 
 const Admin = db.define('admin', {
+    id: {
+        type: Sequelize.DataTypes.UUID,
+        defaultValue: Sequelize.DataTypes.UUIDV4,
+        primaryKey: true,
+        allowNull: false
+    },
     uuid:{
         type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
         defaultValue: Sequelize.DataTypes.UUIDV4,
@@ -35,6 +41,13 @@ const Admin = db.define('admin', {
             notEmpty: true,
         }
     },
+    profileImage: { // Tambahkan kolom untuk menyimpan path gambar
+        type: Sequelize.DataTypes.STRING,
+        allowNull: true,
+        validate: {
+            notEmpty: false,
+        }
+    }
 
 }, {
     freezeTableName: true

@@ -15,7 +15,7 @@ import AuthRoute from "./routes/AuthRoute.js";
 import AdminRoute from "./routes/AdminRoute.js";
 import BahanBakuRoute from "./routes/BahanBakuRoute.js";
 import ProdukRoute from "./routes/ProdukRoute.js";
-
+import uploadRoute from './routes/uploadRoute.js'; // Import route baru
 
 
 dotenv.config();
@@ -36,6 +36,8 @@ const store = new sessionStore({
     try {
         await db.authenticate();  // Check connection to the database
         console.log('Database connected...');
+        await db.sync({ alter: true });
+        console.log("All models were synchronized successfully.");
 
         // Sync models
         await ProdukModel.sync({ alter: true });
@@ -73,6 +75,8 @@ app.use(AuthRoute);
 app.use(AdminRoute);
 app.use(BahanBakuRoute);
 app.use(ProdukRoute);
+app.use('/uploads', express.static('uploads')); // Untuk melayani file gambar yang diunggah
+app.use(uploadRoute);
 
 
   store.sync();  
