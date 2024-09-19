@@ -32,27 +32,26 @@ export const updateBahanBaku = async (req, res) => {
     const { id } = req.params;
     const { BahanBaku, Harga } = req.body;
 
-    // Find the BahanBaku record by id
     const bahanBaku = await BahanBakuModel.findByPk(id);
     if (!bahanBaku) {
-      return res.status(404).json({
-        message: "Bahan Baku tidak ditemukan",
-      });
+      return res.status(404).json({ message: "Bahan Baku tidak ditemukan" });
     }
 
-    // Update the BahanBaku record with the new data
+    // Update fields
     bahanBaku.BahanBaku = BahanBaku;
     bahanBaku.Harga = Harga;
 
     await bahanBaku.save();
 
+    // Return the updated data as JSON
     res.status(200).json({
       message: "Bahan Baku Berhasil Diupdate",
       data: bahanBaku,
     });
   } catch (error) {
-    res.status(400).json({
-      message: "Gagal Mengupdate Bahan Baku",
+    console.error("Error updating Bahan Baku:", error.message);
+    return res.status(500).json({
+      message: "Internal Server Error",
       error: error.message,
     });
   }
