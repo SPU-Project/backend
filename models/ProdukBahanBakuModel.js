@@ -5,43 +5,46 @@ import db from "../config/Database.js";
 import ProdukModel from "./ProdukModel.js";
 import BahanBakuModel from "./BahanBakuModel.js";
 
-const ProdukBahanBakuModel = db.define('ProdukBahanBaku', {
+const ProdukBahanBakuModel = db.define(
+  "ProdukBahanBaku",
+  {
     jumlah: {
-        type: Sequelize.DataTypes.FLOAT,
-        allowNull: false,
-        validate: {
-            notEmpty: true,
-        }
+      type: Sequelize.DataTypes.FLOAT,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
     },
     produkId: {
-        type: Sequelize.DataTypes.INTEGER,
-        references: {
-            model: ProdukModel,
-            key: 'id'
-        },
-        allowNull: false
+      type: Sequelize.DataTypes.INTEGER,
+      references: {
+        model: ProdukModel,
+        key: "id",
+      },
+      allowNull: false,
     },
     bahanBakuId: {
-        type: Sequelize.DataTypes.INTEGER,
-        references: {
-            model: BahanBakuModel,
-            key: 'id'
-        },
-        allowNull: false
-    }
-}, {
-    freezeTableName: true
+      type: Sequelize.DataTypes.INTEGER,
+      references: {
+        model: BahanBakuModel,
+        key: "id",
+      },
+      allowNull: false,
+    },
+  },
+  {
+    freezeTableName: true,
+  }
+);
+// Asosiasi
+ProdukBahanBakuModel.belongsTo(BahanBakuModel, {
+  foreignKey: "bahanBakuId",
+  as: "bahanBaku",
 });
-// Definisikan asosiasi secara eksplisit
-ProdukModel.belongsToMany(BahanBakuModel, {
-    through: ProdukBahanBakuModel,
-    foreignKey: 'produkId',
-    otherKey: 'bahanBakuId'
-});
-BahanBakuModel.belongsToMany(ProdukModel, {
-    through: ProdukBahanBakuModel,
-    foreignKey: 'bahanBakuId',
-    otherKey: 'produkId'
+
+ProdukBahanBakuModel.belongsTo(ProdukModel, {
+  foreignKey: "produkId",
+  as: "produk",
 });
 
 export default ProdukBahanBakuModel;

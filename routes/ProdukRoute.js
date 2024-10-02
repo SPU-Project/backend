@@ -1,28 +1,29 @@
 // routes/ProdukRoute.js
 
-import express from 'express';
-import {addProduk,
-        getAllProdukBahanBaku, 
-        getProdukBahanBakuByProdukId,
-        deleteProdukBahanBaku,
-        updateProdukDetails
- } from "../controllers/Produk.js";
+import express from "express";
+import {
+  addProduk,
+  getAllProdukBahanBaku,
+  getProdukBahanBakuByProdukId,
+  updateProdukDetails,
+  deleteProduk,
+} from "../controllers/Produk.js";
 
 const router = express.Router();
 
-// Add ProdukBahanBaku 
-router.post('/produk', addProduk);
+// Add ProdukBahanBaku
+router.post("/produk", addProduk);
 
 // Get all ProdukBahanBaku entries
-router.get('/produkbahanbaku', getAllProdukBahanBaku);
+router.get("/produkdetails", getAllProdukBahanBaku);
 
 // Get ProdukBahanBaku by Produk ID
-router.get('/produkbahanbaku/:produkId', getProdukBahanBakuByProdukId);
+router.get("/produkdetails/:produkId", getProdukBahanBakuByProdukId);
 
 // Update ProdukBahanBaku entry by ID
-router.patch('/produkbahanbakudetails/:id', updateProdukDetails);
+router.patch("/produkbahanbakudetails/:id", updateProdukDetails);
 
 // Delete ProdukBahanBaku entry by ID
-router.delete('/produkbahanbaku/:id', deleteProdukBahanBaku);
+router.delete("/produkdelete/:id", deleteProduk);
 
 export default router;
