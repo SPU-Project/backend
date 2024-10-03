@@ -5,7 +5,7 @@ import {
   addProduk,
   getAllProdukBahanBaku,
   getProdukBahanBakuByProdukId,
-  updateProdukDetails,
+  /* updateProdukDetails, */
   updateProduk,
   deleteProduk,
 } from "../controllers/Produk.js";
@@ -21,8 +21,8 @@ router.get("/produkdetails", getAllProdukBahanBaku);
 // Get ProdukBahanBaku by Produk ID
 router.get("/produkdetails/:produkId", getProdukBahanBakuByProdukId);
 
-// Update ProdukBahanBaku entry by ID
-router.patch("/produkbahanbakudetails/:id", updateProdukDetails);
+/* // Update ProdukBahanBaku entry by ID
+router.patch("/produkbahanbakudetails/:id", updateProdukDetails); */
 
 // Update ProdukBahanBaku entry by ID V2
 router.patch("/produkbahanbaku/:id", updateProduk);

@@ -91,93 +91,88 @@ export const addProduk = async (req, res) => {
 
 export const updateProduk = async (req, res) => {
   try {
-    const { id } = req.params; // Ambil ID produk dari parameter URL
+    const { id } = req.params;
     const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
 
-    // Temukan produk yang akan diperbarui
-    const produk = await ProdukModel.findOne({ where: { id } });
-
+    const produk = await ProdukModel.findByPk(id);
     if (!produk) {
-      return res.status(404).json({
-        message: `Produk dengan id ${id} tidak ditemukan`,
-      });
+      return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
-    // Hitung total biaya bahan baku
-    let totalBahanBaku = 0;
-    for (let item of bahanBaku) {
-      const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
+    if (namaProduk) {
+      produk.namaProduk = namaProduk;
+    }
 
-      if (!bahan) {
-        return res.status(404).json({
-          message: `Bahan Baku dengan id ${item.id} tidak ditemukan`,
+    let totalBahanBaku = 0;
+    if (bahanBaku && bahanBaku.length > 0) {
+      await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
+
+      for (let item of bahanBaku) {
+        const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
+        if (!bahan) {
+          return res.status(404).json({
+            message: `Bahan Baku dengan id ${item.id} tidak ditemukan`,
+          });
+        }
+
+        const hargaPerGram = Math.round(bahan.Harga / 1000); // Bulatkan ke integer
+        totalBahanBaku += hargaPerGram * item.jumlah;
+
+        await ProdukBahanBakuModel.create({
+          produkId: produk.id,
+          bahanBakuId: item.id,
+          jumlah: Math.round(item.jumlah), // Pastikan jumlah juga integer
         });
       }
+    }
+    totalBahanBaku = Math.round(totalBahanBaku); // Bulatkan hasil akhir
 
-      // Pastikan harga per gram dihitung dengan benar
-      const hargaPerGram = bahan.Harga / 1000; // Mengambil harga per gram dari harga per kilogram
-      totalBahanBaku += hargaPerGram * item.jumlah;
+    let totalOverhead = 0;
+    if (overhead && overhead.length > 0) {
+      await OverheadModel.destroy({ where: { produkId: id } });
+
+      for (let item of overhead) {
+        const harga = Math.round(Number(item.harga));
+        totalOverhead += harga;
+
+        await OverheadModel.create({
+          namaOverhead: item.namaOverhead,
+          harga: harga,
+          produkId: produk.id,
+        });
+      }
     }
 
-    // Hitung total overhead
-    let totalOverhead = overhead.reduce((acc, curr) => acc + curr.harga, 0);
+    let totalKemasan = 0;
+    if (kemasan && kemasan.length > 0) {
+      await KemasanModel.destroy({ where: { produkId: id } });
 
-    // Hitung total kemasan
-    let totalKemasan = kemasan.reduce((acc, curr) => acc + curr.harga, 0);
+      for (let item of kemasan) {
+        const harga = Math.round(Number(item.harga));
+        totalKemasan += harga;
 
-    // Hitung HPP
-    const hpp = totalBahanBaku + totalOverhead + totalKemasan;
-
-    // Perbarui data produk
-    await produk.update({
-      namaProduk: namaProduk,
-      hpp: hpp,
-      margin20: Math.round(hpp * 1.2),
-      margin30: Math.round(hpp * 1.3),
-      margin40: Math.round(hpp * 1.4),
-      margin50: Math.round(hpp * 1.5),
-      margin60: Math.round(hpp * 1.6),
-      margin70: Math.round(hpp * 1.7),
-      margin80: Math.round(hpp * 1.8),
-      margin90: Math.round(hpp * 1.9),
-      margin100: Math.round(hpp * 2.0),
-    });
-
-    // Hapus semua bahan baku terkait dengan produk yang diperbarui
-    await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
-
-    // Simpan data bahan baku baru
-    for (let item of bahanBaku) {
-      await ProdukBahanBakuModel.create({
-        produkId: id,
-        bahanBakuId: item.id,
-        jumlah: item.jumlah,
-      });
+        await KemasanModel.create({
+          namaKemasan: item.namaKemasan,
+          harga: harga,
+          produkId: produk.id,
+        });
+      }
     }
 
-    // Hapus semua overhead terkait dengan produk yang diperbarui
-    await OverheadModel.destroy({ where: { produkId: id } });
+    const hpp = Math.round(totalBahanBaku + totalOverhead + totalKemasan);
 
-    // Simpan overhead baru
-    for (let item of overhead) {
-      await OverheadModel.create({
-        namaOverhead: item.namaOverhead,
-        harga: item.harga,
-        produkId: id,
-      });
-    }
+    produk.hpp = hpp;
+    produk.margin20 = Math.round(hpp * 1.2);
+    produk.margin30 = Math.round(hpp * 1.3);
+    produk.margin40 = Math.round(hpp * 1.4);
+    produk.margin50 = Math.round(hpp * 1.5);
+    produk.margin60 = Math.round(hpp * 1.6);
+    produk.margin70 = Math.round(hpp * 1.7);
+    produk.margin80 = Math.round(hpp * 1.8);
+    produk.margin90 = Math.round(hpp * 1.9);
+    produk.margin100 = Math.round(hpp * 2.0);
 
-    // Hapus semua kemasan terkait dengan produk yang diperbarui
-    await KemasanModel.destroy({ where: { produkId: id } });
-
-    // Simpan kemasan baru
-    for (let item of kemasan) {
-      await KemasanModel.create({
-        namaKemasan: item.namaKemasan,
-        harga: item.harga,
-        produkId: id,
-      });
-    }
+    await produk.save();
 
     res.status(200).json({
       message: "Produk Berhasil Diperbarui",
@@ -217,6 +212,16 @@ export const getAllProdukBahanBaku = async (req, res) => {
             "margin90",
             "margin100",
           ],
+          include: [
+            {
+              model: KemasanModel,
+              attributes: ["id", "namaKemasan", "harga"],
+            },
+            {
+              model: OverheadModel,
+              attributes: ["id", "namaOverhead", "harga"],
+            },
+          ],
         },
       ],
     });
@@ -231,6 +236,7 @@ export const getAllProdukBahanBaku = async (req, res) => {
     });
   }
 };
+
 export const getProdukBahanBakuByProdukId = async (req, res) => {
   try {
     const { produkId } = req.params;
@@ -259,6 +265,16 @@ export const getProdukBahanBakuByProdukId = async (req, res) => {
             "margin90",
             "margin100",
           ],
+          include: [
+            {
+              model: KemasanModel,
+              attributes: ["id", "namaKemasan", "harga"],
+            },
+            {
+              model: OverheadModel,
+              attributes: ["id", "namaOverhead", "harga"],
+            },
+          ],
         },
       ],
     });
@@ -282,93 +298,78 @@ export const getProdukBahanBakuByProdukId = async (req, res) => {
 
 // Update Produk Details
 
-export const updateProdukDetails = async (req, res) => {
+/* export const updateProdukDetails = async (req, res) => {
   try {
-    const { id } = req.params; // Mengambil ID produk dari parameter URL
+    const { id } = req.params;
     const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
 
-    // Temukan produk yang akan diperbarui
     const produk = await ProdukModel.findByPk(id);
     if (!produk) {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
-    // Update nama produk jika ada
     if (namaProduk) {
       produk.namaProduk = namaProduk;
     }
 
-    // Hitung total biaya bahan baku
     let totalBahanBaku = 0;
     if (bahanBaku && bahanBaku.length > 0) {
-      // Hapus bahan baku lama yang terkait dengan produk
       await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
 
-      // Tambahkan bahan baku baru
       for (let item of bahanBaku) {
         const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
-
         if (!bahan) {
           return res.status(404).json({
             message: `Bahan Baku dengan id ${item.id} tidak ditemukan`,
           });
         }
 
-        // Pastikan harga per gram dihitung dengan benar
-        const hargaPerGram = bahan.Harga / 1000; // Mengambil harga per gram dari harga per kilogram
+        const hargaPerGram = Math.round(bahan.Harga / 1000); // Bulatkan ke integer
         totalBahanBaku += hargaPerGram * item.jumlah;
 
-        // Simpan data bahan baku baru
         await ProdukBahanBakuModel.create({
           produkId: produk.id,
           bahanBakuId: item.id,
-          jumlah: item.jumlah,
+          jumlah: Math.round(item.jumlah), // Pastikan jumlah juga integer
         });
       }
     }
+    totalBahanBaku = Math.round(totalBahanBaku); // Bulatkan hasil akhir
 
-    // Hitung total overhead
     let totalOverhead = 0;
     if (overhead && overhead.length > 0) {
-      // Hapus overhead lama yang terkait dengan produk
       await OverheadModel.destroy({ where: { produkId: id } });
 
-      // Tambahkan overhead baru
       for (let item of overhead) {
-        totalOverhead += item.harga;
+        const harga = Math.round(Number(item.harga));
+        totalOverhead += harga;
 
-        // Simpan data overhead baru
         await OverheadModel.create({
           namaOverhead: item.namaOverhead,
-          harga: item.harga,
+          harga: harga,
           produkId: produk.id,
         });
       }
     }
 
-    // Hitung total kemasan
     let totalKemasan = 0;
     if (kemasan && kemasan.length > 0) {
-      // Hapus kemasan lama yang terkait dengan produk
       await KemasanModel.destroy({ where: { produkId: id } });
 
-      // Tambahkan kemasan baru
       for (let item of kemasan) {
-        totalKemasan += item.harga;
+        const harga = Math.round(Number(item.harga));
+        totalKemasan += harga;
 
-        // Simpan data kemasan baru
         await KemasanModel.create({
           namaKemasan: item.namaKemasan,
-          harga: item.harga,
+          harga: harga,
           produkId: produk.id,
         });
       }
     }
 
-    // Hitung HPP baru
-    const hpp = totalBahanBaku + totalOverhead + totalKemasan;
+    const hpp = Math.round(totalBahanBaku + totalOverhead + totalKemasan);
 
-    // Update produk dengan HPP dan margin yang baru
     produk.hpp = hpp;
     produk.margin20 = Math.round(hpp * 1.2);
     produk.margin30 = Math.round(hpp * 1.3);
@@ -379,6 +380,7 @@ export const updateProdukDetails = async (req, res) => {
     produk.margin80 = Math.round(hpp * 1.8);
     produk.margin90 = Math.round(hpp * 1.9);
     produk.margin100 = Math.round(hpp * 2.0);
+
     await produk.save();
 
     res.status(200).json({
@@ -391,7 +393,7 @@ export const updateProdukDetails = async (req, res) => {
       error: error.message,
     });
   }
-};
+}; */
 
 export const deleteProduk = async (req, res) => {
   try {
