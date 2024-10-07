@@ -1,4 +1,5 @@
 import BahanBakuModel from "../models/BahanBakuModel.js";
+import ProdukBahanBakuModel from "../models/ProdukBahanBakuModel.js";
 
 // Function to add new Bahan Baku
 //Create
@@ -59,11 +60,9 @@ export const updateBahanBaku = async (req, res) => {
 
 //Delete
 
-// Function to delete a Bahan Baku by id
 export const deleteBahanBaku = async (req, res) => {
   try {
     const { id } = req.params;
-
     // Find the BahanBaku record by id
     const bahanBaku = await BahanBakuModel.findByPk(id);
     if (!bahanBaku) {
@@ -72,9 +71,22 @@ export const deleteBahanBaku = async (req, res) => {
       });
     }
 
+    // Check if the Bahan Baku is used by any Produk
+    const produkBahanBaku = await ProdukBahanBakuModel.findOne({
+      where: {
+        bahanBakuId: id,
+      },
+    });
+
+    if (produkBahanBaku) {
+      return res.status(400).json({
+        message:
+          "Bahan Baku tidak dapat dihapus karena sedang digunakan oleh Produk",
+      });
+    }
+
     // Delete the BahanBaku record
     await bahanBaku.destroy();
-
     res.status(200).json({
       message: "Bahan Baku Berhasil Dihapus",
     });
