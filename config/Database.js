@@ -2,7 +2,7 @@ import { Sequelize } from "sequelize";
 import dotenv from "dotenv";
 dotenv.config();
 
-const env = process.env.NODE_ENV || "development";
+const env = process.env.NODE_ENV || "production";
 
 const config = {
   development: {
@@ -22,12 +22,11 @@ const config = {
     port: process.env.PGPORT_TEST || 5432,
   },
   production: {
-    username: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    host: process.env.PGHOST,
-    dialect: process.env.PGDIALECT,
-    port: process.env.PGPORT || 5432,
+    host: "localhost",
+    username: "postgres",
+    password: "hasan123",
+    database: "spuofficial",
+    dialect: "postgresql",
   },
 };
 
