@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import session from "express-session";
-import dotenv from "dotenv";
 import db from "./config/Database.js";
 import SequelizeStore from "connect-session-sequelize";
 import Admin from "./models/AdminModel.js";
@@ -16,9 +15,6 @@ import AdminRoute from "./routes/AdminRoute.js";
 import BahanBakuRoute from "./routes/BahanBakuRoute.js";
 import ProdukRoute from "./routes/ProdukRoute.js";
 import uploadRoute from "./routes/uploadRoute.js"; // Import route baru
-
-//Test Connection Cpanel
-dotenv.config();
 
 const app = express();
 app.use(express.json());
@@ -55,7 +51,7 @@ const store = new sessionStore({
 
 app.use(
   session({
-    secret: process.env.SESS_SECRET,
+    secret: "jnfrfnmosumflieiajeoidf",
     resave: false,
     saveUninitialized: false,
     store: store,
@@ -83,6 +79,6 @@ app.use(uploadRoute);
 
 store.sync();
 
-app.listen(process.env.APP_PORT, () => {
+app.listen(5000, () => {
   console.log("Server up and running...");
 });

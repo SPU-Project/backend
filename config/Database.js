@@ -1,8 +1,4 @@
 import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
-dotenv.config();
-
-const env = process.env.NODE_ENV || "development";
 
 const config = {
   development: {
@@ -15,7 +11,7 @@ const config = {
 };
 
 // Ambil konfigurasi berdasarkan environment
-const currentConfig = config[env];
+const currentConfig = config["development"];
 
 const db = new Sequelize(
   currentConfig.database,
