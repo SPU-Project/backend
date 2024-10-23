@@ -2,29 +2,22 @@ const { Sequelize } = require("sequelize");
 const dotenv = require("dotenv");
 dotenv.config();
 
-const env = process.env.NODE_ENV || "development";
+const env = "development";
 
 const config = {
   development: {
-    username: process.env.PGUSER_DEV,
-    password: process.env.PGPASSWORD_DEV,
-    database: process.env.PGDATABASE_DEV,
-    host: process.env.PGHOST_DEV,
-    dialect: process.env.PGDIALECT_DEV,
-  },
-  test: {
-    username: process.env.PGUSER_TEST,
-    password: process.env.PGPASSWORD_TEST,
-    database: process.env.PGDATABASE_TEST,
-    host: process.env.PGHOST_TEST,
-    dialect: process.env.PGDIALECT_TEST,
+    username: "postgres",
+    password: "hasan123",
+    database: "spuofficial",
+    host: "localhost",
+    dialect: "postgres",
   },
   production: {
-    username: process.env.PGUSER,
-    password: process.env.PGPASSWORD,
-    database: process.env.PGDATABASE,
-    host: process.env.PGHOST,
-    dialect: process.env.PGDIALECT,
+    host: "apiv2.pabrikbumbu.com",
+    username: "panganutama_admin",
+    password: "Z5O4aG$WXK8(",
+    database: "panganutama_spuofficial",
+    dialect: "mysql",
   },
 };
 

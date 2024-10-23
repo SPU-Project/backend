@@ -56,7 +56,7 @@ const store = new sessionStore({
 
 app.use(
   session({
-    secret: process.env.SESS_SECRET,
+    secret: "jnfrfnmosumflieiajeoidf",
     resave: false,
     saveUninitialized: false,
     store: store,
@@ -84,6 +84,6 @@ app.use(uploadRoute);
 
 store.sync();
 
-app.listen(process.env.APP_PORT, () => {
+app.listen(5000, () => {
   console.log("Server up and running...");
 });
