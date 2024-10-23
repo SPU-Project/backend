@@ -1,7 +1,6 @@
 // models/ProdukModel.js
-
-import { Sequelize } from "sequelize";
-import db from "../config/Database.js";
+const { Sequelize } = require("sequelize");
+const db = require("../config/Database.js");
 
 const ProdukModel = db.define(
   "produk",
@@ -53,4 +52,4 @@ const ProdukModel = db.define(
   }
 );
 
-export default ProdukModel;
+module.exports = ProdukModel;

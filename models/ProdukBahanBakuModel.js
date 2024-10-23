@@ -1,9 +1,9 @@
 // models/ProdukBahanBakuModel.js
 
-import { Sequelize } from "sequelize";
-import db from "../config/Database.js";
-import ProdukModel from "./ProdukModel.js";
-import BahanBakuModel from "./BahanBakuModel.js";
+const { Sequelize } = require("sequelize");
+const db = require("../config/Database.js");
+const ProdukModel = require("./ProdukModel.js");
+const BahanBakuModel = require("./BahanBakuModel.js");
 
 const ProdukBahanBakuModel = db.define(
   "ProdukBahanBaku",
@@ -47,4 +47,4 @@ ProdukBahanBakuModel.belongsTo(ProdukModel, {
   as: "produk",
 });
 
-export default ProdukBahanBakuModel;
+module.exports = ProdukBahanBakuModel;

@@ -1,8 +1,9 @@
 // controllers/uploadController.js
-import Admin from "../models/AdminModel.js";
-import path from "path"; // Tambahkan impor ini
 
-export const uploadProfileImage = async (req, res) => {
+const Admin = require("../models/AdminModel.js");
+const path = require("path");
+
+const uploadProfileImage = async (req, res) => {
   try {
     const userId = req.session.userId; // Mengambil userId dari session
 
@@ -32,7 +33,7 @@ export const uploadProfileImage = async (req, res) => {
   }
 };
 
-export const getProfileImage = async (req, res) => {
+const getProfileImage = async (req, res) => {
   try {
     const userId = req.session.userId; // Mengambil userId dari session
 
@@ -58,3 +59,5 @@ export const getProfileImage = async (req, res) => {
     });
   }
 };
+
+module.exports = { uploadProfileImage, getProfileImage };

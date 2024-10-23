@@ -1,7 +1,7 @@
-import Admin from "../models/AdminModel.js";
-import argon2 from "argon2";
+const Admin = require("../models/AdminModel.js");
+const argon2 = require("argon2");
 
-export const Login = async (req, res) => {
+const Login = async (req, res) => {
   try {
     // Mencari pengguna berdasarkan email yang diberikan
     const user = await Admin.findOne({
@@ -35,7 +35,7 @@ export const Login = async (req, res) => {
   }
 };
 
-export const Me = async (req, res) => {
+const Me = async (req, res) => {
   console.log("Session in /me route:", req.session.userId); // Log session details
 
   if (!req.session.userId)
@@ -58,7 +58,7 @@ export const Me = async (req, res) => {
   }
 };
 
-export const Logout = (req, res) => {
+const Logout = (req, res) => {
   if (!req.session.userId) {
     console.log("Logout attempt without a valid session"); // Log saat tidak ada sesi yang valid
     return res.status(401).json({ msg: "User not logged in" });
@@ -82,3 +82,5 @@ export const Logout = (req, res) => {
     res.status(200).json({ msg: "Logout success" });
   });
 };
+
+module.exports = { Login, Me, Logout };

@@ -1,9 +1,9 @@
-import BahanBakuModel from "../models/BahanBakuModel.js";
-import ProdukBahanBakuModel from "../models/ProdukBahanBakuModel.js";
+const BahanBakuModel = require("../models/BahanBakuModel");
+const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
 
 // Function to add new Bahan Baku
 //Create
-export const addBahanBaku = async (req, res) => {
+const addBahanBaku = async (req, res) => {
   try {
     const { BahanBaku, Harga } = req.body;
 
@@ -28,7 +28,7 @@ export const addBahanBaku = async (req, res) => {
 
 //Update
 // Function to update a Bahan Baku by id
-export const updateBahanBaku = async (req, res) => {
+const updateBahanBaku = async (req, res) => {
   try {
     const { id } = req.params;
     const { BahanBaku, Harga } = req.body;
@@ -60,7 +60,7 @@ export const updateBahanBaku = async (req, res) => {
 
 //Delete
 
-export const deleteBahanBaku = async (req, res) => {
+const deleteBahanBaku = async (req, res) => {
   try {
     const { id } = req.params;
     // Find the BahanBaku record by id
@@ -99,7 +99,7 @@ export const deleteBahanBaku = async (req, res) => {
 };
 
 // Function to get all Bahan Baku
-export const getAllBahanBaku = async (req, res) => {
+const getAllBahanBaku = async (req, res) => {
   try {
     // Fetch all records from BahanBakuModel
     const bahanBakuList = await BahanBakuModel.findAll();
@@ -114,4 +114,11 @@ export const getAllBahanBaku = async (req, res) => {
       error: error.message,
     });
   }
+};
+
+module.exports = {
+  addBahanBaku,
+  updateBahanBaku,
+  deleteBahanBaku,
+  getAllBahanBaku,
 };

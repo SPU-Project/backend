@@ -1,21 +1,22 @@
-import express from "express";
-import cors from "cors";
-import session from "express-session";
-import dotenv from "dotenv";
-import db from "./config/Database.js";
-import SequelizeStore from "connect-session-sequelize";
-import Admin from "./models/AdminModel.js";
-import BahanBakuModel from "./models/BahanBakuModel.js";
-import KemasanModel from "./models/KemasanModel.js";
-import OverheadModel from "./models/OverheadModel.js";
-import ProdukBahanBakuModel from "./models/ProdukBahanBakuModel.js";
-import ProdukModel from "./models/ProdukModel.js";
-//route
-import AuthRoute from "./routes/AuthRoute.js";
-import AdminRoute from "./routes/AdminRoute.js";
-import BahanBakuRoute from "./routes/BahanBakuRoute.js";
-import ProdukRoute from "./routes/ProdukRoute.js";
-import uploadRoute from "./routes/uploadRoute.js"; // Import route baru
+const express = require("express");
+const cors = require("cors");
+const session = require("express-session");
+const dotenv = require("dotenv");
+const db = require("./config/Database.js");
+const SequelizeStore = require("connect-session-sequelize");
+const Admin = require("./models/AdminModel.js");
+const BahanBakuModel = require("./models/BahanBakuModel.js");
+const KemasanModel = require("./models/KemasanModel.js");
+const OverheadModel = require("./models/OverheadModel.js");
+const ProdukBahanBakuModel = require("./models/ProdukBahanBakuModel.js");
+const ProdukModel = require("./models/ProdukModel.js");
+
+// route
+const AuthRoute = require("./routes/AuthRoute.js");
+const AdminRoute = require("./routes/AdminRoute.js");
+const BahanBakuRoute = require("./routes/BahanBakuRoute.js");
+const ProdukRoute = require("./routes/ProdukRoute.js");
+const uploadRoute = require("./routes/uploadRoute.js"); // Import route baru
 
 //Test Connection Cpanel
 dotenv.config();

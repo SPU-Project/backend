@@ -1,5 +1,5 @@
-import { Sequelize } from "sequelize";
-import dotenv from "dotenv";
+const { Sequelize } = require("sequelize");
+const dotenv = require("dotenv");
 dotenv.config();
 
 const env = process.env.NODE_ENV || "development";
@@ -11,7 +11,6 @@ const config = {
     database: process.env.PGDATABASE_DEV,
     host: process.env.PGHOST_DEV,
     dialect: process.env.PGDIALECT_DEV,
-    port: process.env.PGPORT_DEV || 5432,
   },
   test: {
     username: process.env.PGUSER_TEST,
@@ -19,7 +18,6 @@ const config = {
     database: process.env.PGDATABASE_TEST,
     host: process.env.PGHOST_TEST,
     dialect: process.env.PGDIALECT_TEST,
-    port: process.env.PGPORT_TEST || 5432,
   },
   production: {
     username: process.env.PGUSER,
@@ -27,7 +25,6 @@ const config = {
     database: process.env.PGDATABASE,
     host: process.env.PGHOST,
     dialect: process.env.PGDIALECT,
-    port: process.env.PGPORT || 5432,
   },
 };
 
@@ -46,4 +43,4 @@ const db = new Sequelize(
   }
 );
 
-export default db;
+module.exports = db;

@@ -1,10 +1,10 @@
-import express from "express";
-import {
+const express = require("express");
+const {
   addBahanBaku,
   updateBahanBaku,
   getAllBahanBaku,
   deleteBahanBaku,
-} from "../controllers/BahanBaku.js";
+} = require("../controllers/BahanBaku.js");
 
 const router = express.Router();
 
@@ -13,4 +13,4 @@ router.patch("/bahanbaku/:id", updateBahanBaku);
 router.get("/bahanbaku", getAllBahanBaku);
 router.delete("/bahanbaku/:id", deleteBahanBaku);
 
-export default router;
+module.exports = router;

@@ -1,12 +1,12 @@
 // controllers/Produk.js
 
-import ProdukModel from "../models/ProdukModel.js";
-import BahanBakuModel from "../models/BahanBakuModel.js";
-import OverheadModel from "../models/OverheadModel.js";
-import KemasanModel from "../models/KemasanModel.js";
-import ProdukBahanBakuModel from "../models/ProdukBahanBakuModel.js";
+const ProdukModel = require("../models/ProdukModel.js");
+const BahanBakuModel = require("../models/BahanBakuModel.js");
+const OverheadModel = require("../models/OverheadModel.js");
+const KemasanModel = require("../models/KemasanModel.js");
+const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
 
-export const addProduk = async (req, res) => {
+const addProduk = async (req, res) => {
   try {
     const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
 
@@ -89,7 +89,7 @@ export const addProduk = async (req, res) => {
   }
 };
 
-export const updateProduk = async (req, res) => {
+const updateProduk = async (req, res) => {
   try {
     const { id } = req.params;
     const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
@@ -186,7 +186,7 @@ export const updateProduk = async (req, res) => {
   }
 };
 
-export const getAllProdukBahanBaku = async (req, res) => {
+const getAllProdukBahanBaku = async (req, res) => {
   try {
     const produkBahanBaku = await ProdukBahanBakuModel.findAll({
       include: [
@@ -237,7 +237,7 @@ export const getAllProdukBahanBaku = async (req, res) => {
   }
 };
 
-export const getProdukBahanBakuByProdukId = async (req, res) => {
+const getProdukBahanBakuByProdukId = async (req, res) => {
   try {
     const { produkId } = req.params;
     const produkBahanBaku = await ProdukBahanBakuModel.findAll({
@@ -395,7 +395,7 @@ export const getProdukBahanBakuByProdukId = async (req, res) => {
   }
 }; */
 
-export const deleteProduk = async (req, res) => {
+const deleteProduk = async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -438,4 +438,12 @@ export const deleteProduk = async (req, res) => {
       .status(400)
       .json({ message: "Gagal menghapus produk", error: error.message });
   }
+};
+
+module.exports = {
+  addProduk,
+  updateProduk,
+  getAllProdukBahanBaku,
+  getProdukBahanBakuByProdukId,
+  deleteProduk,
 };

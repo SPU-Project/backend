@@ -1,11 +1,9 @@
-// routes/uploadRoute.js
-
-import express from "express";
-import upload from "../middleware/uploadMiddleware.js";
-import {
+const express = require("express");
+const upload = require("../middleware/uploadMiddleware.js");
+const {
   uploadProfileImage,
   getProfileImage,
-} from "../controllers/uploadController.js";
+} = require("../controllers/uploadController.js");
 
 const router = express.Router();
 
@@ -16,4 +14,4 @@ router.post(
 );
 router.get("/profile-image", getProfileImage); // Route baru untuk mendapatkan gambar profil
 
-export default router;
+module.exports = router;
