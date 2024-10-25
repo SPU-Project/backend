@@ -55,22 +55,32 @@ const store = new sessionStore({
 })();
 
 app.use(
+  cors({
+    credentials: true,
+    origin: function (origin, callback) {
+      if (allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Origin tidak diizinkan oleh CORS"));
+      }
+    },
+  })
+);
+
+const allowedOrigins = ["https://produksi.pabrikbumbu.com"];
+app.use(
   session({
     secret: "jnfrfnmosumflieiajeoidf",
     resave: false,
     saveUninitialized: false,
     store: store,
     cookie: {
+      // Gunakan true jika menggunakan HTTPS
+      sameSite: "none", // Penting untuk CORS dengan kredensial
+      domain: ".pabrikbumbu.com",
+      httpOnly: true,
       maxAge: 120 * 60 * 1000,
-      secure: "auto",
     },
-  })
-);
-
-app.use(
-  cors({
-    credentials: true,
-    origin: "http://localhost:3000",
   })
 );
 
