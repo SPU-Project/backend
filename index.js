@@ -54,11 +54,17 @@ const store = new sessionStore({
   }
 })();
 
+const allowedOrigins = [
+  "https://produksi.pabrikbumbu.com",
+  "http://localhost:5000",
+];
+
 app.use(
   cors({
     credentials: true,
     origin: function (origin, callback) {
-      if (allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        // Mengizinkan permintaan jika tidak ada header Origin (misalnya, dari Postman)
         callback(null, true);
       } else {
         callback(new Error("Origin tidak diizinkan oleh CORS"));
@@ -67,7 +73,6 @@ app.use(
   })
 );
 
-const allowedOrigins = ["https://produksi.pabrikbumbu.com"];
 app.use(
   session({
     secret: "jnfrfnmosumflieiajeoidf",
