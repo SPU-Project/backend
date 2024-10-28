@@ -28,8 +28,8 @@ app.use(express.urlencoded({ extended: true }));
 const sessionStore = SequelizeStore(session.Store);
 const store = new sessionStore({
   db: db,
-  expiration: 120 * 60 * 1000,
-  checkExpirationInterval: 120 * 60 * 1000,
+  expiration: 10080 * 60 * 1000,
+  checkExpirationInterval: 10080 * 60 * 1000,
 });
 
 // Immediately Invoked Function Expression (IIFE) to handle database operations
@@ -75,16 +75,16 @@ app.use(
 
 app.use(
   session({
-    secret: "jnfrfnmosumflieiajeoidf",
+    secret: "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: store,
     cookie: {
-      // Gunakan true jika menggunakan HTTPS
-      sameSite: "none", // Penting untuk CORS dengan kredensial
-      domain: ".pabrikbumbu.com",
+      secure: false,
+      sameSite: "lax",
       httpOnly: true,
-      maxAge: 120 * 60 * 1000,
+      maxAge: 10080 * 60 * 1000,
+      // Jangan atur 'domain' di sini
     },
   })
 );
