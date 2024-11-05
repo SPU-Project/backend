@@ -1,5 +1,18 @@
 const BahanBakuModel = require("../models/BahanBakuModel");
 const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
+const RiwayatLog = require("../models/RiwayatLog.js");
+const Admin = require("../models/AdminModel.js");
+
+const getUserInfo = async (req) => {
+  if (!req.session.userId) return null;
+  const user = await Admin.findOne({
+    attributes: ["username", "role"],
+    where: {
+      id: req.session.userId,
+    },
+  });
+  return user;
+};
 
 // Function to add new Bahan Baku
 //Create
@@ -13,6 +26,18 @@ const addBahanBaku = async (req, res) => {
       Harga,
     });
 
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menambahkan Bahan Baku: ${BahanBaku}`,
+      });
+    }
+
     res.status(201).json({
       message: "Bahan Baku Berhasil Ditambahkan",
       data: newBahanBaku,
@@ -24,6 +49,7 @@ const addBahanBaku = async (req, res) => {
     });
   }
 };
+
 //Read
 
 //Update
@@ -38,13 +64,27 @@ const updateBahanBaku = async (req, res) => {
       return res.status(404).json({ message: "Bahan Baku tidak ditemukan" });
     }
 
+    // Simpan data lama untuk log
+    const oldBahanBaku = bahanBaku.BahanBaku;
+
     // Update fields
     bahanBaku.BahanBaku = BahanBaku;
     bahanBaku.Harga = Harga;
 
     await bahanBaku.save();
 
-    // Return the updated data as JSON
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Mengupdate Bahan Baku dari ${oldBahanBaku} ke ${BahanBaku}`,
+      });
+    }
+
     res.status(200).json({
       message: "Bahan Baku Berhasil Diupdate",
       data: bahanBaku,
@@ -85,8 +125,24 @@ const deleteBahanBaku = async (req, res) => {
       });
     }
 
+    // Simpan nama bahan baku untuk log
+    const namaBahanBaku = bahanBaku.BahanBaku;
+
     // Delete the BahanBaku record
     await bahanBaku.destroy();
+
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menghapus Bahan Baku: ${namaBahanBaku}`,
+      });
+    }
+
     res.status(200).json({
       message: "Bahan Baku Berhasil Dihapus",
     });

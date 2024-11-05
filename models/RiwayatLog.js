@@ -7,7 +7,7 @@ const RiwayatLog = db.define(
     username: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
       allowNull: false,
-      unique: true,
+      unique: false,
       validate: {
         notEmpty: true,
       },
@@ -15,6 +15,7 @@ const RiwayatLog = db.define(
     role: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
       allowNull: false,
+      unique: false,
       validate: {
         notEmpty: true,
       },

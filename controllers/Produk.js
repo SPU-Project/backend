@@ -5,6 +5,19 @@ const BahanBakuModel = require("../models/BahanBakuModel.js");
 const OverheadModel = require("../models/OverheadModel.js");
 const KemasanModel = require("../models/KemasanModel.js");
 const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
+const RiwayatLog = require("../models/RiwayatLog.js");
+const Admin = require("../models/AdminModel.js");
+
+const getUserInfo = async (req) => {
+  if (!req.session.userId) return null;
+  const user = await Admin.findOne({
+    attributes: ["username", "role"],
+    where: {
+      id: req.session.userId,
+    },
+  });
+  return user;
+};
 
 const addProduk = async (req, res) => {
   try {
@@ -77,6 +90,18 @@ const addProduk = async (req, res) => {
       });
     }
 
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menambahkan Produk: ${namaProduk}`,
+      });
+    }
+
     res.status(201).json({
       message: "Produk Berhasil Ditambahkan",
       data: produkBaru,
@@ -98,6 +123,9 @@ const updateProduk = async (req, res) => {
     if (!produk) {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
+
+    // Simpan nama produk lama untuk log
+    const oldNamaProduk = produk.namaProduk;
 
     if (namaProduk) {
       produk.namaProduk = namaProduk;
@@ -173,6 +201,18 @@ const updateProduk = async (req, res) => {
     produk.margin100 = Math.round(hpp * 2.0);
 
     await produk.save();
+
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Mengupdate Produk dari ${oldNamaProduk} ke ${namaProduk}`,
+      });
+    }
 
     res.status(200).json({
       message: "Produk Berhasil Diperbarui",
@@ -406,6 +446,9 @@ const deleteProduk = async (req, res) => {
       return res.status(404).json({ message: "Produk tidak ditemukan" });
     }
 
+    // Simpan nama produk untuk log
+    const namaProduk = produk.namaProduk;
+
     // Mulai transaksi untuk memastikan konsistensi data
     await ProdukModel.sequelize.transaction(async (t) => {
       // Hapus data terkait di ProdukBahanBakuModel
@@ -429,6 +472,18 @@ const deleteProduk = async (req, res) => {
       // Hapus produk
       await produk.destroy({ transaction: t });
     });
+
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menghapus Produk: ${namaProduk}`,
+      });
+    }
 
     res
       .status(200)
