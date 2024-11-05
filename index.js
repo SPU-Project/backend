@@ -56,7 +56,7 @@ const store = new sessionStore({
 
 const allowedOrigins = [
   "https://produksi.pabrikbumbu.com",
-  "http://localhost:5000",
+  "http://localhost:3000",
 ];
 
 app.use(
