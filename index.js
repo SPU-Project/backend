@@ -59,7 +59,7 @@ const store = new sessionStore({
 
 const allowedOrigins = [
   "https://produksi.pabrikbumbu.com",
-  "http://localhost:3000",
+  "http://localhost:5000",
 ];
 
 app.use(
@@ -78,13 +78,14 @@ app.use(
 
 app.use(
   session({
-    secret: "your-secret-key",
+    secret: "jnfrfnmosumflieiajeoidf",
     resave: false,
     saveUninitialized: false,
     store: store,
     cookie: {
-      secure: false,
-      sameSite: "lax",
+      // Gunakan true jika menggunakan HTTPS
+      sameSite: "none", // Penting untuk CORS dengan kredensial
+      domain: ".pabrikbumbu.com",
       httpOnly: true,
       maxAge: 10080 * 60 * 1000,
     },
