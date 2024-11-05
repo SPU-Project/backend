@@ -27,7 +27,8 @@ const Login = async (req, res) => {
     const uuid = user.uuid;
     const email = user.email;
     const username = user.username;
-    res.status(200).json({ msg: "Login success", uuid, email, username });
+    const role = user.role;
+    res.status(200).json({ msg: "Login success", uuid, email, username, role });
   } catch (error) {
     // Tangani kesalahan internal server
     console.error("Login error:", error);
@@ -43,7 +44,7 @@ const Me = async (req, res) => {
 
   try {
     const user = await Admin.findOne({
-      attributes: ["uuid", "email", "username"],
+      attributes: ["uuid", "email", "username", "role"],
       where: {
         id: req.session.userId,
       },

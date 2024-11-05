@@ -4,7 +4,7 @@ const argon2 = require("argon2");
 const getUser = async (req, res) => {
   try {
     const response = await Admin.findAll({
-      attributes: ["id", "uuid", "email", "username"],
+      attributes: ["id", "uuid", "email", "username", "role"],
     });
     res.status(200).json(response);
   } catch (error) {
@@ -16,7 +16,7 @@ const getUserById = async (req, res) => {
   try {
     // Fetch the user by UUID from the request parameters
     const user = await Admin.findOne({
-      attributes: ["id", "uuid", "email", "username"],
+      attributes: ["id", "uuid", "email", "username", "role"],
       where: {
         id: req.params.id,
       },
@@ -36,11 +36,12 @@ const getUserById = async (req, res) => {
 };
 
 const createUser = async (req, res) => {
-  const { email, password, confPassword, username } = req.body;
+  const { email, password, confPassword, username, role } = req.body;
   // Log nilai req.body dan password
   console.log("Request Body:", req.body);
   console.log("Password:", password);
   console.log("ConfPassword:", confPassword);
+  console.log("Role:", role);
   // Validasi bahwa password dan confPassword cocok
   if (password !== confPassword) {
     return res
@@ -69,6 +70,7 @@ const createUser = async (req, res) => {
       email: email,
       password: hashPassword,
       username: username,
+      role: role,
     });
 
     res.status(201).json({ msg: "Registration successful" });
@@ -89,7 +91,7 @@ const updateUser = async (req, res) => {
 
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    const { email, password, confPassword, username } = req.body;
+    const { email, password, confPassword, username, role } = req.body;
 
     // Log for debugging
     console.log("Request Body:", req.body);
@@ -135,6 +137,7 @@ const updateUser = async (req, res) => {
         email: email,
         password: hashPassword,
         username: username,
+        role: role,
       },
       {
         where: {

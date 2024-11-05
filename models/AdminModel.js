@@ -5,8 +5,8 @@ const Admin = db.define(
   "admin",
   {
     id: {
-      type: Sequelize.DataTypes.UUID,
-      defaultValue: Sequelize.DataTypes.UUIDV4,
+      type: Sequelize.DataTypes.INTEGER,
+      autoIncrement: true,
       primaryKey: true,
       allowNull: false,
     },
@@ -48,6 +48,13 @@ const Admin = db.define(
       allowNull: true,
       validate: {
         notEmpty: false,
+      },
+    },
+    role: {
+      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
+      allowNull: false,
+      validate: {
+        notEmpty: true,
       },
     },
   },

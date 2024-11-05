@@ -10,13 +10,15 @@ const KemasanModel = require("./models/KemasanModel.js");
 const OverheadModel = require("./models/OverheadModel.js");
 const ProdukBahanBakuModel = require("./models/ProdukBahanBakuModel.js");
 const ProdukModel = require("./models/ProdukModel.js");
+const RiwayatLog = require("./models/RiwayatLog.js");
 
 // route
 const AuthRoute = require("./routes/AuthRoute.js");
 const AdminRoute = require("./routes/AdminRoute.js");
 const BahanBakuRoute = require("./routes/BahanBakuRoute.js");
 const ProdukRoute = require("./routes/ProdukRoute.js");
-const uploadRoute = require("./routes/uploadRoute.js"); // Import route baru
+const uploadRoute = require("./routes/uploadRoute.js");
+const RiwayatRoute = require("./routes/RiwayatRoute.js");
 
 //Test Connection Cpanel
 dotenv.config();
@@ -47,6 +49,7 @@ const store = new sessionStore({
     await ProdukBahanBakuModel.sync({ alter: true });
     await OverheadModel.sync({ alter: true });
     await KemasanModel.sync({ alter: true });
+    await RiwayatLog.sync({ alter: true });
 
     console.log("Database synced...");
   } catch (error) {
@@ -56,7 +59,7 @@ const store = new sessionStore({
 
 const allowedOrigins = [
   "https://produksi.pabrikbumbu.com",
-  "http://localhost:5000",
+  "http://localhost:3000",
 ];
 
 app.use(
@@ -75,14 +78,13 @@ app.use(
 
 app.use(
   session({
-    secret: "jnfrfnmosumflieiajeoidf",
+    secret: "your-secret-key",
     resave: false,
     saveUninitialized: false,
     store: store,
     cookie: {
-      // Gunakan true jika menggunakan HTTPS
-      sameSite: "none", // Penting untuk CORS dengan kredensial
-      domain: ".pabrikbumbu.com",
+      secure: false,
+      sameSite: "lax",
       httpOnly: true,
       maxAge: 10080 * 60 * 1000,
     },
@@ -96,6 +98,7 @@ app.use(BahanBakuRoute);
 app.use(ProdukRoute);
 app.use("/uploads", express.static("uploads")); // Untuk melayani file gambar yang diunggah
 app.use(uploadRoute);
+app.use(RiwayatRoute);
 
 store.sync();
 
