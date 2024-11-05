@@ -10,6 +10,7 @@ const KemasanModel = require("./models/KemasanModel.js");
 const OverheadModel = require("./models/OverheadModel.js");
 const ProdukBahanBakuModel = require("./models/ProdukBahanBakuModel.js");
 const ProdukModel = require("./models/ProdukModel.js");
+const RiwayatLog = require("./models/RiwayatLog.js");
 
 // route
 const AuthRoute = require("./routes/AuthRoute.js");
@@ -47,6 +48,7 @@ const store = new sessionStore({
     await ProdukBahanBakuModel.sync({ alter: true });
     await OverheadModel.sync({ alter: true });
     await KemasanModel.sync({ alter: true });
+    await RiwayatLog.sync({ alter: true });
 
     console.log("Database synced...");
   } catch (error) {
