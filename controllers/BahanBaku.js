@@ -1,7 +1,7 @@
 const BahanBakuModel = require("../models/BahanBakuModel");
 const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
-const RiwayatLog = require("../models/RiwayatLog.js");
 const Admin = require("../models/AdminModel.js");
+const RiwayatLog = require("../models/RiwayatLog.js");
 
 const getUserInfo = async (req) => {
   if (!req.session.userId) return null;
@@ -17,6 +17,17 @@ const getUserInfo = async (req) => {
 // Function to add new Bahan Baku
 //Create
 const addBahanBaku = async (req, res) => {
+  const getUserInfo = async (req) => {
+    if (!req.session.userId) return null;
+    const user = await Admin.findOne({
+      attributes: ["username", "role"],
+      where: {
+        id: req.session.userId,
+      },
+    });
+    return user;
+  };
+
   try {
     const { BahanBaku, Harga } = req.body;
 
