@@ -37,18 +37,13 @@ const getUserById = async (req, res) => {
 
 const createUser = async (req, res) => {
   const { email, password, confPassword, username, role } = req.body;
-  // Log nilai req.body dan password
-  console.log("Request Body:", req.body);
-  console.log("Password:", password);
-  console.log("ConfPassword:", confPassword);
-  console.log("Role:", role);
-  // Validasi bahwa password dan confPassword cocok
+
   if (password !== confPassword) {
     return res
       .status(400)
       .json({ msg: "Password dan konfirmasi password tidak cocok" });
   }
-  // Periksa apakah username sudah ada
+
   // Check if email already exists
   const existingEmail = await Admin.findOne({ where: { email } });
   if (existingEmail) {
@@ -64,16 +59,36 @@ const createUser = async (req, res) => {
       .status(400)
       .json({ msg: "Username already exists, please choose another" });
   }
+
   const hashPassword = await argon2.hash(password);
+
   try {
-    await Admin.create({
+    const newUser = await Admin.create({
       email: email,
       password: hashPassword,
       username: username,
       role: role,
     });
 
-    res.status(201).json({ msg: "Registration successful" });
+    // Exclude password and other sensitive fields
+    const {
+      id,
+      uuid,
+      email: userEmail,
+      username: userUsername,
+      role: userRole,
+    } = newUser;
+
+    res.status(201).json({
+      msg: "Registration successful",
+      user: {
+        id,
+        uuid,
+        email: userEmail,
+        username: userUsername,
+        role: userRole,
+      },
+    });
   } catch (error) {
     res.status(400).json({ error: error.message });
   }
