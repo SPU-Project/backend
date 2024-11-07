@@ -1,36 +1,48 @@
 const Admin = require("../models/AdminModel.js");
 const argon2 = require("argon2");
+const RiwayatLog = require("../models/RiwayatLog.js");
 
 const Login = async (req, res) => {
   try {
-    // Mencari pengguna berdasarkan email yang diberikan
+    // Find the user by email
     const user = await Admin.findOne({
       where: {
         email: req.body.email,
       },
     });
 
-    // Jika pengguna tidak ditemukan, kirim respons 404
+    // If user not found, send 404 response
     if (!user) return res.status(404).json({ msg: "User not found" });
 
-    // Verifikasi password yang diberikan dengan hash yang tersimpan
+    // Verify the password
     const match = await argon2.verify(user.password, req.body.password);
 
-    // Jika password tidak cocok, kirim respons 400
+    // If password does not match, send 400 response
     if (!match) return res.status(400).json({ msg: "Wrong password" });
 
-    // Jika password cocok, buat sesi dan simpan user ID dalam sesi
+    // Set the session userId
     req.session.userId = user.id;
-    console.log("Session User ID:", req.session.userId); // Log ID pengguna yang disimpan di sesi
+    console.log("Session User ID:", req.session.userId);
 
-    // Kirim respons sukses dengan data pengguna
+    // Create a log entry in RiwayatLog
+    try {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: "User logged in",
+      });
+    } catch (error) {
+      console.error("Error creating log entry:", error);
+      // You can choose to handle this error or proceed
+    }
+
+    // Send success response with user data
     const uuid = user.uuid;
     const email = user.email;
     const username = user.username;
     const role = user.role;
     res.status(200).json({ msg: "Login success", uuid, email, username, role });
   } catch (error) {
-    // Tangani kesalahan internal server
     console.error("Login error:", error);
     res.status(500).json({ msg: "Internal server error" });
   }
@@ -59,29 +71,51 @@ const Me = async (req, res) => {
   }
 };
 
-const Logout = (req, res) => {
+const Logout = async (req, res) => {
   if (!req.session.userId) {
-    console.log("Logout attempt without a valid session"); // Log saat tidak ada sesi yang valid
+    console.log("Logout attempt without a valid session");
     return res.status(401).json({ msg: "User not logged in" });
   }
 
-  req.session.destroy((err) => {
-    if (err) {
-      console.log("Error destroying session:", err); // Log jika terjadi kesalahan saat menghancurkan sesi
-      return res.status(400).json({ msg: "Logout failed" });
-    }
-
-    // Cek apakah sesi benar-benar terhapus
-    if (!req.session) {
-      console.log("Session has been successfully destroyed."); // Log jika sesi terhapus
-    } else {
-      console.log("Session still exists:", req.session); // Log jika sesi masih ada (ini seharusnya tidak terjadi)
-    }
-
-    res.clearCookie("connect.sid");
-    console.log("Session destroyed and cookie cleared"); // Log saat sesi dihancurkan dan cookie dihapus
-    res.status(200).json({ msg: "Logout success" });
+  // Get user information before destroying the session
+  const user = await Admin.findOne({
+    where: { id: req.session.userId },
+    attributes: ["username", "role"],
   });
+
+  // Function to destroy the session using a Promise
+  const destroySession = () =>
+    new Promise((resolve, reject) => {
+      req.session.destroy((err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+  try {
+    // Destroy the session
+    await destroySession();
+    res.clearCookie("connect.sid");
+    console.log("Session destroyed and cookie cleared");
+
+    // Create a log entry in RiwayatLog
+    try {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: "User logged out",
+      });
+    } catch (error) {
+      console.error("Error creating log entry:", error);
+      // You can choose to handle this error or proceed
+    }
+
+    // Send success response
+    res.status(200).json({ msg: "Logout success" });
+  } catch (err) {
+    console.log("Error destroying session:", err);
+    return res.status(400).json({ msg: "Logout failed" });
+  }
 };
 
 module.exports = { Login, Me, Logout };
