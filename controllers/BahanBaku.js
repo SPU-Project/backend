@@ -1,5 +1,9 @@
+const db = require("../config/Database.js");
+const sequelize = db; // Assuming db exports the Sequelize instance
+
 const BahanBakuModel = require("../models/BahanBakuModel");
 const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
+const StokBahanBaku = require("../models/StokBahanBakuModel.js");
 const Admin = require("../models/AdminModel.js");
 const RiwayatLog = require("../models/RiwayatLog.js");
 
@@ -14,46 +18,58 @@ const getUserInfo = async (req) => {
   return user;
 };
 
-// Function to add new Bahan Baku
-//Create
 const addBahanBaku = async (req, res) => {
-  const getUserInfo = async (req) => {
-    if (!req.session.userId) return null;
-    const user = await Admin.findOne({
-      attributes: ["username", "role"],
-      where: {
-        id: req.session.userId,
-      },
-    });
-    return user;
-  };
+  // Start a transaction
+  const transaction = await sequelize.transaction();
 
   try {
     const { BahanBaku, Harga } = req.body;
 
     // Create a new record in the BahanBakuModel
-    const newBahanBaku = await BahanBakuModel.create({
-      BahanBaku,
-      Harga,
-    });
+    const newBahanBaku = await BahanBakuModel.create(
+      {
+        BahanBaku,
+        Harga,
+      },
+      { transaction }
+    );
 
-    // Dapatkan informasi pengguna
+    // Create the related entry in StokBahanBaku
+    await StokBahanBaku.create(
+      {
+        BahanBakuId: newBahanBaku.id, // Foreign key to BahanBakuModel
+        BahanBaku: newBahanBaku.BahanBaku, // Name of the BahanBaku
+        // TanggalPembaruan will be set automatically to current date/time
+      },
+      { transaction }
+    );
+
+    // Get user info
     const user = await getUserInfo(req);
 
-    // Simpan log ke RiwayatLog
+    // Save log to RiwayatLog
     if (user) {
-      await RiwayatLog.create({
-        username: user.username,
-        role: user.role,
-        description: `Menambahkan Bahan Baku: ${BahanBaku}`,
-      });
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Menambahkan Bahan Baku: ${BahanBaku}`,
+        },
+        { transaction }
+      );
     }
+
+    // Commit the transaction
+    await transaction.commit();
 
     res.status(201).json({
       message: "Bahan Baku Berhasil Ditambahkan",
       data: newBahanBaku,
     });
   } catch (error) {
+    // Rollback the transaction in case of error
+    await transaction.rollback();
+
     res.status(400).json({
       message: "Gagal Menambahkan Bahan Baku",
       error: error.message,
@@ -62,45 +78,66 @@ const addBahanBaku = async (req, res) => {
 };
 
 //Read
-
-//Update
-// Function to update a Bahan Baku by id
 const updateBahanBaku = async (req, res) => {
+  // Start a transaction
+  const transaction = await sequelize.transaction();
+
   try {
     const { id } = req.params;
     const { BahanBaku, Harga } = req.body;
 
-    const bahanBaku = await BahanBakuModel.findByPk(id);
+    const bahanBaku = await BahanBakuModel.findByPk(id, { transaction });
     if (!bahanBaku) {
+      await transaction.rollback();
       return res.status(404).json({ message: "Bahan Baku tidak ditemukan" });
     }
 
-    // Simpan data lama untuk log
+    // Save old data for logging
     const oldBahanBaku = bahanBaku.BahanBaku;
 
-    // Update fields
+    // Update fields in BahanBakuModel
     bahanBaku.BahanBaku = BahanBaku;
     bahanBaku.Harga = Harga;
 
-    await bahanBaku.save();
+    await bahanBaku.save({ transaction });
 
-    // Dapatkan informasi pengguna
+    // Update the corresponding StokBahanBaku
+    const stokBahanBaku = await StokBahanBaku.findOne({
+      where: { BahanBakuId: id },
+      transaction,
+    });
+
+    if (stokBahanBaku) {
+      stokBahanBaku.BahanBaku = BahanBaku;
+      stokBahanBaku.TanggalPembaruan = Sequelize.NOW;
+      await stokBahanBaku.save({ transaction });
+    }
+
+    // Get user info
     const user = await getUserInfo(req);
 
-    // Simpan log ke RiwayatLog
+    // Save log to RiwayatLog
     if (user) {
-      await RiwayatLog.create({
-        username: user.username,
-        role: user.role,
-        description: `Mengupdate Bahan Baku dari ${oldBahanBaku} ke ${BahanBaku}`,
-      });
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Mengupdate Bahan Baku dari ${oldBahanBaku} ke ${BahanBaku}`,
+        },
+        { transaction }
+      );
     }
+
+    // Commit the transaction
+    await transaction.commit();
 
     res.status(200).json({
       message: "Bahan Baku Berhasil Diupdate",
       data: bahanBaku,
     });
   } catch (error) {
+    // Rollback the transaction in case of error
+    await transaction.rollback();
     console.error("Error updating Bahan Baku:", error.message);
     return res.status(500).json({
       message: "Internal Server Error",
@@ -108,15 +145,16 @@ const updateBahanBaku = async (req, res) => {
     });
   }
 };
-
-//Delete
-
 const deleteBahanBaku = async (req, res) => {
+  // Start a transaction
+  const transaction = await sequelize.transaction();
+
   try {
     const { id } = req.params;
     // Find the BahanBaku record by id
-    const bahanBaku = await BahanBakuModel.findByPk(id);
+    const bahanBaku = await BahanBakuModel.findByPk(id, { transaction });
     if (!bahanBaku) {
+      await transaction.rollback();
       return res.status(404).json({
         message: "Bahan Baku tidak ditemukan",
       });
@@ -127,37 +165,57 @@ const deleteBahanBaku = async (req, res) => {
       where: {
         bahanBakuId: id,
       },
+      transaction,
     });
 
     if (produkBahanBaku) {
+      await transaction.rollback();
       return res.status(400).json({
         message:
           "Bahan Baku tidak dapat dihapus karena sedang digunakan oleh Produk",
       });
     }
 
-    // Simpan nama bahan baku untuk log
+    // Save BahanBaku name for logging
     const namaBahanBaku = bahanBaku.BahanBaku;
 
-    // Delete the BahanBaku record
-    await bahanBaku.destroy();
+    // Delete the corresponding StokBahanBaku record
+    const stokBahanBaku = await StokBahanBaku.findOne({
+      where: { BahanBakuId: id },
+      transaction,
+    });
 
-    // Dapatkan informasi pengguna
+    if (stokBahanBaku) {
+      await stokBahanBaku.destroy({ transaction });
+    }
+
+    // Delete the BahanBaku record
+    await bahanBaku.destroy({ transaction });
+
+    // Get user info
     const user = await getUserInfo(req);
 
-    // Simpan log ke RiwayatLog
+    // Save log to RiwayatLog
     if (user) {
-      await RiwayatLog.create({
-        username: user.username,
-        role: user.role,
-        description: `Menghapus Bahan Baku: ${namaBahanBaku}`,
-      });
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Menghapus Bahan Baku: ${namaBahanBaku}`,
+        },
+        { transaction }
+      );
     }
+
+    // Commit the transaction
+    await transaction.commit();
 
     res.status(200).json({
       message: "Bahan Baku Berhasil Dihapus",
     });
   } catch (error) {
+    // Rollback the transaction in case of error
+    await transaction.rollback();
     res.status(400).json({
       message: "Gagal Menghapus Bahan Baku",
       error: error.message,
