@@ -27,10 +27,7 @@ const addBahanBaku = async (req, res) => {
 
     // Create a new record in the BahanBakuModel
     const newBahanBaku = await BahanBakuModel.create(
-      {
-        BahanBaku,
-        Harga,
-      },
+      { BahanBaku, Harga },
       { transaction }
     );
 
@@ -109,7 +106,7 @@ const updateBahanBaku = async (req, res) => {
 
     if (stokBahanBaku) {
       stokBahanBaku.BahanBaku = BahanBaku;
-      stokBahanBaku.TanggalPembaruan = Sequelize.NOW;
+      stokBahanBaku.TanggalPembaruan = new Date();
       await stokBahanBaku.save({ transaction });
     }
 
@@ -145,6 +142,7 @@ const updateBahanBaku = async (req, res) => {
     });
   }
 };
+
 const deleteBahanBaku = async (req, res) => {
   // Start a transaction
   const transaction = await sequelize.transaction();

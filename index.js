@@ -19,6 +19,7 @@ const BahanBakuRoute = require("./routes/BahanBakuRoute.js");
 const ProdukRoute = require("./routes/ProdukRoute.js");
 const uploadRoute = require("./routes/uploadRoute.js");
 const RiwayatRoute = require("./routes/RiwayatRoute.js");
+const StokBahanBakuRoute = require("./routes/StokBahanBakuRoute.js");
 
 require("./models/association.js");
 
@@ -103,6 +104,7 @@ app.use(ProdukRoute);
 app.use("/uploads", express.static("uploads")); // Untuk melayani file gambar yang diunggah
 app.use(uploadRoute);
 app.use(RiwayatRoute);
+app.use(StokBahanBakuRoute);
 
 store.sync();
 
