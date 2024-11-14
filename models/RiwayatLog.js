@@ -2,7 +2,7 @@ const { Sequelize } = require("sequelize"); // Perbaiki spasi di sini
 const db = require("../config/Database.js");
 
 const RiwayatLog = db.define(
-  "riwayat",
+  "RiwayatLog",
   {
     username: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini

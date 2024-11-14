@@ -2,7 +2,7 @@ const { Sequelize } = require("sequelize"); // Perbaiki spasi di sini
 const db = require("../config/Database.js");
 
 const Admin = db.define(
-  "admin",
+  "Admin",
   {
     id: {
       type: Sequelize.DataTypes.INTEGER,

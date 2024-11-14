@@ -4,7 +4,7 @@ const { Sequelize } = require("sequelize");
 const db = require("../config/Database.js");
 
 const StokBahanBaku = db.define(
-  "stokbahanbaku",
+  "StokBahanBaku",
   {
     id: {
       type: Sequelize.DataTypes.INTEGER,

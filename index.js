@@ -4,6 +4,8 @@ const session = require("express-session");
 const dotenv = require("dotenv");
 const db = require("./config/Database.js");
 const SequelizeStore = require("connect-session-sequelize");
+
+// Import models
 const Admin = require("./models/AdminModel.js");
 const BahanBakuModel = require("./models/BahanBakuModel.js");
 const KemasanModel = require("./models/KemasanModel.js");
@@ -12,7 +14,11 @@ const ProdukBahanBakuModel = require("./models/ProdukBahanBakuModel.js");
 const ProdukModel = require("./models/ProdukModel.js");
 const RiwayatLog = require("./models/RiwayatLog.js");
 const StokBahanBaku = require("./models/StokBahanBakuModel.js");
-// route
+const StatusProduksiModel = require("./models/StatusProduksiModel.js");
+
+require("./models/association.js");
+
+// Import routes
 const AuthRoute = require("./routes/AuthRoute.js");
 const AdminRoute = require("./routes/AdminRoute.js");
 const BahanBakuRoute = require("./routes/BahanBakuRoute.js");
@@ -20,8 +26,6 @@ const ProdukRoute = require("./routes/ProdukRoute.js");
 const uploadRoute = require("./routes/uploadRoute.js");
 const RiwayatRoute = require("./routes/RiwayatRoute.js");
 const StokBahanBakuRoute = require("./routes/StokBahanBakuRoute.js");
-
-require("./models/association.js");
 
 //Test Connection Cpanel
 dotenv.config();
@@ -37,6 +41,7 @@ const store = new sessionStore({
   checkExpirationInterval: 10080 * 60 * 1000,
 });
 
+// Database synchronization
 // Immediately Invoked Function Expression (IIFE) to handle database operations
 (async function () {
   try {
@@ -54,6 +59,7 @@ const store = new sessionStore({
     await KemasanModel.sync({ alter: true });
     await RiwayatLog.sync({ alter: true });
     await StokBahanBaku.sync({ alter: true });
+    await StatusProduksiModel.sync({ alter: true });
 
     console.log("Database synced...");
   } catch (error) {

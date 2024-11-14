@@ -23,9 +23,27 @@ const addProduk = async (req, res) => {
   try {
     const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
 
-    // Hitung total biaya bahan baku
-    let totalBahanBaku = 0;
+    // Step 1: Aggregate bahanBaku items by id
+    let bahanBakuMap = {};
+
     for (let item of bahanBaku) {
+      if (bahanBakuMap[item.id]) {
+        // Sum the jumlah for the same bahanBakuId
+        bahanBakuMap[item.id] += item.jumlah;
+      } else {
+        bahanBakuMap[item.id] = item.jumlah;
+      }
+    }
+
+    // Convert the map to an array
+    let aggregatedBahanBaku = [];
+    for (let id in bahanBakuMap) {
+      aggregatedBahanBaku.push({ id: parseInt(id), jumlah: bahanBakuMap[id] });
+    }
+
+    // Step 2: Calculate total bahan baku cost
+    let totalBahanBaku = 0;
+    for (let item of aggregatedBahanBaku) {
       const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
 
       if (!bahan) {
@@ -34,21 +52,19 @@ const addProduk = async (req, res) => {
         });
       }
 
-      // Pastikan harga per gram dihitung dengan benar
-      const hargaPerGram = bahan.Harga / 1000; // Mengambil harga per gram dari harga per kilogram
+      // Calculate cost per gram from cost per kilogram
+      const hargaPerGram = bahan.Harga / 1000;
       totalBahanBaku += hargaPerGram * item.jumlah;
     }
 
-    // Hitung total overhead
+    // Step 3: Calculate overhead and kemasan costs
     let totalOverhead = overhead.reduce((acc, curr) => acc + curr.harga, 0);
-
-    // Hitung total kemasan
     let totalKemasan = kemasan.reduce((acc, curr) => acc + curr.harga, 0);
 
-    // Hitung HPP
+    // Step 4: Calculate HPP
     const hpp = totalBahanBaku + totalOverhead + totalKemasan;
 
-    // Simpan produk baru
+    // Step 5: Save the new product
     const produkBaru = await ProdukModel.create({
       namaProduk: namaProduk,
       hpp: hpp,
@@ -63,8 +79,8 @@ const addProduk = async (req, res) => {
       margin100: Math.round(hpp * 2.0),
     });
 
-    // Simpan data bahan baku
-    for (let item of bahanBaku) {
+    // Step 6: Save aggregated bahan baku data
+    for (let item of aggregatedBahanBaku) {
       await ProdukBahanBakuModel.create({
         produkId: produkBaru.id,
         bahanBakuId: item.id,
@@ -72,7 +88,7 @@ const addProduk = async (req, res) => {
       });
     }
 
-    // Simpan overhead
+    // Step 7: Save overhead
     for (let item of overhead) {
       await OverheadModel.create({
         namaOverhead: item.namaOverhead,
@@ -81,7 +97,7 @@ const addProduk = async (req, res) => {
       });
     }
 
-    // Simpan kemasan
+    // Step 8: Save kemasan
     for (let item of kemasan) {
       await KemasanModel.create({
         namaKemasan: item.namaKemasan,
@@ -90,25 +106,15 @@ const addProduk = async (req, res) => {
       });
     }
 
-    // Dapatkan informasi pengguna
-    const user = await getUserInfo(req);
-
-    // Simpan log ke RiwayatLog
-    if (user) {
-      await RiwayatLog.create({
-        username: user.username,
-        role: user.role,
-        description: `Menambahkan Produk: ${namaProduk}`,
-      });
-    }
-
+    // Optionally, return the newly created product data
     res.status(201).json({
-      message: "Produk Berhasil Ditambahkan",
+      message: "Produk berhasil ditambahkan",
       data: produkBaru,
     });
   } catch (error) {
-    res.status(400).json({
-      message: "Gagal Menambahkan Produk",
+    console.error("Error adding product:", error.message);
+    res.status(500).json({
+      message: "Terjadi kesalahan saat menambahkan produk",
       error: error.message,
     });
   }
@@ -131,11 +137,35 @@ const updateProduk = async (req, res) => {
       produk.namaProduk = namaProduk;
     }
 
-    let totalBahanBaku = 0;
+    // Handle bahanBaku updates
     if (bahanBaku && bahanBaku.length > 0) {
-      await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
+      // Aggregate bahanBaku items by id
+      let bahanBakuMap = {};
 
       for (let item of bahanBaku) {
+        if (bahanBakuMap[item.id]) {
+          bahanBakuMap[item.id] += item.jumlah;
+        } else {
+          bahanBakuMap[item.id] = item.jumlah;
+        }
+      }
+
+      // Convert the map to an array
+      let aggregatedBahanBaku = [];
+      for (let id in bahanBakuMap) {
+        aggregatedBahanBaku.push({
+          id: parseInt(id),
+          jumlah: bahanBakuMap[id],
+        });
+      }
+
+      // Recalculate totalBahanBaku
+      let totalBahanBaku = 0;
+
+      // Delete old associations
+      await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
+
+      for (let item of aggregatedBahanBaku) {
         const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
         if (!bahan) {
           return res.status(404).json({
@@ -143,62 +173,65 @@ const updateProduk = async (req, res) => {
           });
         }
 
-        const hargaPerGram = Math.round(bahan.Harga / 1000); // Bulatkan ke integer
+        const hargaPerGram = bahan.Harga / 1000;
         totalBahanBaku += hargaPerGram * item.jumlah;
 
         await ProdukBahanBakuModel.create({
           produkId: produk.id,
           bahanBakuId: item.id,
-          jumlah: Math.round(item.jumlah), // Pastikan jumlah juga integer
+          jumlah: item.jumlah,
         });
       }
-    }
-    totalBahanBaku = Math.round(totalBahanBaku); // Bulatkan hasil akhir
 
-    let totalOverhead = 0;
+      produk.hpp = totalBahanBaku; // Update HPP with new totalBahanBaku
+    }
+
+    // Handle overhead updates
     if (overhead && overhead.length > 0) {
       await OverheadModel.destroy({ where: { produkId: id } });
 
+      let totalOverhead = 0;
       for (let item of overhead) {
-        const harga = Math.round(Number(item.harga));
-        totalOverhead += harga;
+        totalOverhead += item.harga;
 
         await OverheadModel.create({
           namaOverhead: item.namaOverhead,
-          harga: harga,
+          harga: item.harga,
           produkId: produk.id,
         });
       }
+
+      produk.hpp += totalOverhead; // Update HPP with new overhead
     }
 
-    let totalKemasan = 0;
+    // Handle kemasan updates
     if (kemasan && kemasan.length > 0) {
       await KemasanModel.destroy({ where: { produkId: id } });
 
+      let totalKemasan = 0;
       for (let item of kemasan) {
-        const harga = Math.round(Number(item.harga));
-        totalKemasan += harga;
+        totalKemasan += item.harga;
 
         await KemasanModel.create({
           namaKemasan: item.namaKemasan,
-          harga: harga,
+          harga: item.harga,
           produkId: produk.id,
         });
       }
+
+      produk.hpp += totalKemasan; // Update HPP with new kemasan
     }
 
-    const hpp = Math.round(totalBahanBaku + totalOverhead + totalKemasan);
-
-    produk.hpp = hpp;
-    produk.margin20 = Math.round(hpp * 1.2);
-    produk.margin30 = Math.round(hpp * 1.3);
-    produk.margin40 = Math.round(hpp * 1.4);
-    produk.margin50 = Math.round(hpp * 1.5);
-    produk.margin60 = Math.round(hpp * 1.6);
-    produk.margin70 = Math.round(hpp * 1.7);
-    produk.margin80 = Math.round(hpp * 1.8);
-    produk.margin90 = Math.round(hpp * 1.9);
-    produk.margin100 = Math.round(hpp * 2.0);
+    // Recalculate margins
+    produk.margin20 = Math.round(produk.hpp * 1.2);
+    produk.margin30 = Math.round(produk.hpp * 1.3);
+    produk.margin40 = Math.round(produk.hpp * 1.4);
+    produk.margin50 = Math.round(produk.hpp * 1.5);
+    produk.margin60 = Math.round(produk.hpp * 1.6);
+    produk.margin70 = Math.round(produk.hpp * 1.7);
+    produk.margin80 = Math.round(produk.hpp * 1.8);
+    produk.margin90 = Math.round(produk.hpp * 1.9);
+    produk.margin100 = Math.round(produk.hpp * 2.0);
 
     await produk.save();
 
@@ -210,13 +243,73 @@ const updateProduk = async (req, res) => {
       await RiwayatLog.create({
         username: user.username,
         role: user.role,
-        description: `Mengupdate Produk dari ${oldNamaProduk} ke ${namaProduk}`,
+        description: `Mengupdate Produk dari ${oldNamaProduk} ke ${produk.namaProduk}`,
       });
     }
 
+    // Fetch updated product with associations
+    const updatedProduk = await ProdukModel.findOne({
+      where: { id: produk.id },
+      attributes: [
+        "id",
+        "namaProduk",
+        "hpp",
+        "margin20",
+        "margin30",
+        "margin40",
+        "margin50",
+        "margin60",
+        "margin70",
+        "margin80",
+        "margin90",
+        "margin100",
+      ],
+      include: [
+        {
+          model: BahanBakuModel,
+          as: "bahanbakumodel",
+          attributes: ["id", "BahanBaku", "Harga"],
+          through: { attributes: ["jumlah"] },
+        },
+        {
+          model: KemasanModel,
+          as: "kemasans",
+          attributes: ["id", "namaKemasan", "harga"],
+        },
+        {
+          model: OverheadModel,
+          as: "overheads",
+          attributes: ["id", "namaOverhead", "harga"],
+        },
+      ],
+    });
+
+    let bahanbakumodel = [];
+    if (
+      updatedProduk.bahanbakumodel &&
+      updatedProduk.bahanbakumodel.length > 0
+    ) {
+      bahanbakumodel = updatedProduk.bahanbakumodel.map((bahanBaku) => {
+        const jumlah = bahanBaku.ProdukBahanBakuModel
+          ? bahanBaku.ProdukBahanBakuModel.jumlah
+          : null;
+
+        return {
+          ...bahanBaku.toJSON(),
+          jumlah: jumlah,
+          ProdukBahanBakuModel: undefined, // Remove the nested object
+        };
+      });
+    }
+
+    const responseData = {
+      ...updatedProduk.toJSON(),
+      bahanbakumodel,
+    };
+
     res.status(200).json({
       message: "Produk Berhasil Diperbarui",
-      data: produk,
+      data: responseData,
     });
   } catch (error) {
     res.status(400).json({
@@ -228,50 +321,75 @@ const updateProduk = async (req, res) => {
 
 const getAllProdukBahanBaku = async (req, res) => {
   try {
-    const produkBahanBaku = await ProdukBahanBakuModel.findAll({
+    const produkList = await ProdukModel.findAll({
+      attributes: [
+        "id",
+        "namaProduk",
+        "hpp",
+        "margin20",
+        "margin30",
+        "margin40",
+        "margin50",
+        "margin60",
+        "margin70",
+        "margin80",
+        "margin90",
+        "margin100",
+      ],
       include: [
         {
           model: BahanBakuModel,
-          as: "bahanBaku",
+          as: "bahanbakumodel",
           attributes: ["id", "BahanBaku", "Harga"],
+          through: {
+            model: ProdukBahanBakuModel,
+            attributes: ["jumlah"],
+          },
         },
         {
-          model: ProdukModel,
-          as: "produk",
-          attributes: [
-            "id",
-            "namaProduk",
-            "hpp",
-            "margin20",
-            "margin30",
-            "margin40",
-            "margin50",
-            "margin60",
-            "margin70",
-            "margin80",
-            "margin90",
-            "margin100",
-          ],
-          include: [
-            {
-              model: KemasanModel,
-              attributes: ["id", "namaKemasan", "harga"],
-            },
-            {
-              model: OverheadModel,
-              attributes: ["id", "namaOverhead", "harga"],
-            },
-          ],
+          model: KemasanModel,
+          as: "kemasans",
+          attributes: ["id", "namaKemasan", "harga"],
+        },
+        {
+          model: OverheadModel,
+          as: "overheads",
+          attributes: ["id", "namaOverhead", "harga"],
         },
       ],
     });
+
+    // Adjust the data for each product
+    const adjustedProdukList = produkList.map((produk) => {
+      // Adjust the bahanbakumodel data
+      let bahanbakumodel = [];
+      if (produk.bahanbakumodel && produk.bahanbakumodel.length > 0) {
+        bahanbakumodel = produk.bahanbakumodel.map((bahanBaku) => {
+          const jumlah = bahanBaku.ProdukBahanBakuModel
+            ? bahanBaku.ProdukBahanBakuModel.jumlah
+            : null;
+
+          return {
+            ...bahanBaku.toJSON(),
+            jumlah: jumlah,
+            ProdukBahanBakuModel: undefined, // Remove the nested object
+          };
+        });
+      }
+
+      return {
+        ...produk.toJSON(),
+        bahanbakumodel,
+      };
+    });
+
     res.status(200).json({
-      message: "Data Produk Bahan Baku berhasil diambil",
-      data: produkBahanBaku,
+      message: "Data Produk berhasil diambil",
+      data: adjustedProdukList,
     });
   } catch (error) {
     res.status(500).json({
-      message: "Gagal mengambil data Produk Bahan Baku",
+      message: "Gagal mengambil data Produk",
       error: error.message,
     });
   }
@@ -280,160 +398,85 @@ const getAllProdukBahanBaku = async (req, res) => {
 const getProdukBahanBakuByProdukId = async (req, res) => {
   try {
     const { produkId } = req.params;
-    const produkBahanBaku = await ProdukBahanBakuModel.findAll({
-      where: { produkId },
+
+    const produk = await ProdukModel.findOne({
+      where: { id: produkId },
+      attributes: [
+        "id",
+        "namaProduk",
+        "hpp",
+        "margin20",
+        "margin30",
+        "margin40",
+        "margin50",
+        "margin60",
+        "margin70",
+        "margin80",
+        "margin90",
+        "margin100",
+      ],
       include: [
         {
           model: BahanBakuModel,
-          as: "bahanBaku",
+          as: "bahanbakumodel",
           attributes: ["id", "BahanBaku", "Harga"],
+          through: {
+            model: ProdukBahanBakuModel,
+            attributes: ["jumlah"],
+          },
         },
         {
-          model: ProdukModel,
-          as: "produk",
-          attributes: [
-            "id",
-            "namaProduk",
-            "hpp",
-            "margin20",
-            "margin30",
-            "margin40",
-            "margin50",
-            "margin60",
-            "margin70",
-            "margin80",
-            "margin90",
-            "margin100",
-          ],
-          include: [
-            {
-              model: KemasanModel,
-              attributes: ["id", "namaKemasan", "harga"],
-            },
-            {
-              model: OverheadModel,
-              attributes: ["id", "namaOverhead", "harga"],
-            },
-          ],
+          model: KemasanModel,
+          as: "kemasans",
+          attributes: ["id", "namaKemasan", "harga"],
+        },
+        {
+          model: OverheadModel,
+          as: "overheads",
+          attributes: ["id", "namaOverhead", "harga"],
         },
       ],
     });
-    if (!produkBahanBaku.length) {
+
+    if (!produk) {
       return res.status(404).json({
-        message: "Tidak ada data ditemukan untuk produk ini",
-        data: [],
+        message: "Produk tidak ditemukan",
+        data: null,
       });
     }
+
+    // Adjust the bahanbakumodel data
+    let bahanbakumodel = [];
+    if (produk.bahanbakumodel && produk.bahanbakumodel.length > 0) {
+      bahanbakumodel = produk.bahanbakumodel.map((bahanBaku) => {
+        const jumlah = bahanBaku.ProdukBahanBakuModel
+          ? bahanBaku.ProdukBahanBakuModel.jumlah
+          : null;
+
+        return {
+          ...bahanBaku.toJSON(),
+          jumlah: jumlah,
+          ProdukBahanBakuModel: undefined, // Remove the nested object
+        };
+      });
+    }
+
+    const responseData = {
+      ...produk.toJSON(),
+      bahanbakumodel,
+    };
+
     res.status(200).json({
-      message: "Data Produk Bahan Baku berhasil diambil",
-      data: produkBahanBaku,
+      message: "Data Produk berhasil diambil",
+      data: responseData,
     });
   } catch (error) {
     res.status(500).json({
-      message: "Gagal mengambil data Produk Bahan Baku",
+      message: "Gagal mengambil data Produk",
       error: error.message,
     });
   }
 };
-
-// Update Produk Details
-
-/* export const updateProdukDetails = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const { namaProduk, bahanBaku, overhead, kemasan } = req.body;
-
-    const produk = await ProdukModel.findByPk(id);
-    if (!produk) {
-      return res.status(404).json({ message: "Produk tidak ditemukan" });
-    }
-
-    if (namaProduk) {
-      produk.namaProduk = namaProduk;
-    }
-
-    let totalBahanBaku = 0;
-    if (bahanBaku && bahanBaku.length > 0) {
-      await ProdukBahanBakuModel.destroy({ where: { produkId: id } });
-
-      for (let item of bahanBaku) {
-        const bahan = await BahanBakuModel.findOne({ where: { id: item.id } });
-        if (!bahan) {
-          return res.status(404).json({
-            message: `Bahan Baku dengan id ${item.id} tidak ditemukan`,
-          });
-        }
-
-        const hargaPerGram = Math.round(bahan.Harga / 1000); // Bulatkan ke integer
-        totalBahanBaku += hargaPerGram * item.jumlah;
-
-        await ProdukBahanBakuModel.create({
-          produkId: produk.id,
-          bahanBakuId: item.id,
-          jumlah: Math.round(item.jumlah), // Pastikan jumlah juga integer
-        });
-      }
-    }
-    totalBahanBaku = Math.round(totalBahanBaku); // Bulatkan hasil akhir
-
-    let totalOverhead = 0;
-    if (overhead && overhead.length > 0) {
-      await OverheadModel.destroy({ where: { produkId: id } });
-
-      for (let item of overhead) {
-        const harga = Math.round(Number(item.harga));
-        totalOverhead += harga;
-
-        await OverheadModel.create({
-          namaOverhead: item.namaOverhead,
-          harga: harga,
-          produkId: produk.id,
-        });
-      }
-    }
-
-    let totalKemasan = 0;
-    if (kemasan && kemasan.length > 0) {
-      await KemasanModel.destroy({ where: { produkId: id } });
-
-      for (let item of kemasan) {
-        const harga = Math.round(Number(item.harga));
-        totalKemasan += harga;
-
-        await KemasanModel.create({
-          namaKemasan: item.namaKemasan,
-          harga: harga,
-          produkId: produk.id,
-        });
-      }
-    }
-
-    const hpp = Math.round(totalBahanBaku + totalOverhead + totalKemasan);
-
-    produk.hpp = hpp;
-    produk.margin20 = Math.round(hpp * 1.2);
-    produk.margin30 = Math.round(hpp * 1.3);
-    produk.margin40 = Math.round(hpp * 1.4);
-    produk.margin50 = Math.round(hpp * 1.5);
-    produk.margin60 = Math.round(hpp * 1.6);
-    produk.margin70 = Math.round(hpp * 1.7);
-    produk.margin80 = Math.round(hpp * 1.8);
-    produk.margin90 = Math.round(hpp * 1.9);
-    produk.margin100 = Math.round(hpp * 2.0);
-
-    await produk.save();
-
-    res.status(200).json({
-      message: "Produk Berhasil Diperbarui",
-      data: produk,
-    });
-  } catch (error) {
-    res.status(400).json({
-      message: "Gagal Memperbarui Produk",
-      error: error.message,
-    });
-  }
-}; */
 
 const deleteProduk = async (req, res) => {
   try {

@@ -6,7 +6,7 @@ const ProdukModel = require("./ProdukModel.js");
 const BahanBakuModel = require("./BahanBakuModel.js");
 
 const ProdukBahanBakuModel = db.define(
-  "ProdukBahanBaku",
+  "ProdukBahanBakuModel",
   {
     jumlah: {
       type: Sequelize.DataTypes.FLOAT,
@@ -36,15 +36,5 @@ const ProdukBahanBakuModel = db.define(
     freezeTableName: true,
   }
 );
-// Asosiasi
-ProdukBahanBakuModel.belongsTo(BahanBakuModel, {
-  foreignKey: "bahanBakuId",
-  as: "bahanBaku",
-});
-
-ProdukBahanBakuModel.belongsTo(ProdukModel, {
-  foreignKey: "produkId",
-  as: "produk",
-});
 
 module.exports = ProdukBahanBakuModel;
