@@ -1,7 +1,7 @@
 # Backend Project
 
 ## Deskripsi
-Proyek ini adalah backend yang dibangun dengan Node.js untuk menangani berbagai operasi server, seperti API, middleware, dan interaksi dengan database.
+Proyek ini adalah backend yang dibangun dengan Node.js untuk menangani berbagai operasi server, seperti API, middleware, dan interaksi dengan database yang dibutuhkan pada Sistem Informasi Produksi di PT. Sukaraja Pangan Utama
 
 ## Fitur
 - **Routing**: Pengaturan rute di folder `routes`.
