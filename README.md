@@ -28,18 +28,5 @@ Proyek ini adalah backend yang dibangun dengan Node.js untuk menangani berbagai 
 3. Jalankan Start
    npm start
 
-### Struktur Proyek
-Backend/
-├── routes/         # Rute API
-├── uploads/        # File unggahan
-├── utils/          # Fungsi utilitas
-├── .env            # Variabel lingkungan
-├── index.js        # Entry point aplikasi
-├── package.json    # File deskripsi proyek
-├── package-lock.json
-├── config/         # Konfigurasi
-├── controllers/    # Logika kontrol
-├── middleware/     # Middleware kustom
-├── models/         # Model data
 
 Jika Anda memiliki pertanyaan atau masukan, silakan hubungi saya melalui Email : hasanabdurrahman12345@gmail.com
