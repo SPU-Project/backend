@@ -25,7 +25,6 @@ const addProduk = async (req, res) => {
 
     // Step 1: Aggregate bahanBaku items by id
     let bahanBakuMap = {};
-
     for (let item of bahanBaku) {
       if (bahanBakuMap[item.id]) {
         // Sum the jumlah for the same bahanBakuId
@@ -103,6 +102,20 @@ const addProduk = async (req, res) => {
         namaKemasan: item.namaKemasan,
         harga: item.harga,
         produkId: produkBaru.id,
+      });
+    }
+
+    // **Tambahkan Bagian RiwayatLog (Seperti di updateProduk)**
+
+    // Dapatkan informasi pengguna
+    const user = await getUserInfo(req);
+
+    // Simpan log ke RiwayatLog
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menambahkan Produk: ${produkBaru.namaProduk}`,
       });
     }
 
