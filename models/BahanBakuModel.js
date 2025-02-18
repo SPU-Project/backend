@@ -19,6 +19,14 @@ const BahanBakuModel = db.define(
         notEmpty: true,
       },
     },
+    Satuan: {
+      type: Sequelize.DataTypes.STRING,
+      // allowNull: true,
+      // unique: false, // Ensure uniqueness
+      // validate: {
+      //   notEmpty: true,
+      // },
+    },
     Harga: {
       type: Sequelize.DataTypes.INTEGER,
       allowNull: false,

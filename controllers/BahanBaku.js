@@ -23,11 +23,18 @@ const addBahanBaku = async (req, res) => {
   const transaction = await sequelize.transaction();
 
   try {
-    const { BahanBaku, Harga } = req.body;
+    const { BahanBaku, Satuan, Harga } = req.body;
+
+    // Validasi: Pastikan Satuan maksimal 3 huruf
+    if (!/^[A-Za-z]{1,3}$/.test(Satuan)) {
+      return res.status(400).json({
+        message: "Satuan harus terdiri dari maksimal 3 huruf saja",
+      });
+    }
 
     // Create a new record in the BahanBakuModel
     const newBahanBaku = await BahanBakuModel.create(
-      { BahanBaku, Harga },
+      { BahanBaku, Satuan, Harga },
       { transaction }
     );
 
@@ -81,7 +88,14 @@ const updateBahanBaku = async (req, res) => {
 
   try {
     const { id } = req.params;
-    const { BahanBaku, Harga } = req.body;
+    const { BahanBaku, Satuan, Harga } = req.body;
+
+    // Validasi: Pastikan Satuan maksimal 3 huruf
+    if (!/^[A-Za-z]{1,3}$/.test(Satuan)) {
+      return res.status(400).json({
+        message: "Satuan harus terdiri dari maksimal 3 huruf saja",
+      });
+    }
 
     const bahanBaku = await BahanBakuModel.findByPk(id, { transaction });
     if (!bahanBaku) {
@@ -95,6 +109,7 @@ const updateBahanBaku = async (req, res) => {
     // Update fields in BahanBakuModel
     bahanBaku.BahanBaku = BahanBaku;
     bahanBaku.Harga = Harga;
+    bahanBaku.Satuan = Satuan;
 
     await bahanBaku.save({ transaction });
 
