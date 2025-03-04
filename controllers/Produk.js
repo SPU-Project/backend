@@ -52,7 +52,7 @@ const addProduk = async (req, res) => {
       }
 
       // Calculate cost per gram from cost per kilogram
-      const hargaPerGram = bahan.Harga / 1000;
+      const hargaPerGram = bahan.Harga;
       totalBahanBaku += hargaPerGram * item.jumlah;
     }
 
@@ -186,7 +186,7 @@ const updateProduk = async (req, res) => {
           });
         }
 
-        const hargaPerGram = bahan.Harga / 1000;
+        const hargaPerGram = bahan.Harga;
         totalBahanBaku += hargaPerGram * item.jumlah;
 
         await ProdukBahanBakuModel.create({
@@ -389,10 +389,45 @@ const getAllProdukBahanBaku = async (req, res) => {
           };
         });
       }
+      // Adjust kemasans: format harga agar menampilkan seluruh angka nol
+      let kemasans = [];
+      if (produk.kemasans && produk.kemasans.length > 0) {
+        kemasans = produk.kemasans.map((kemasan) => {
+          let hargaValue = kemasan.harga;
+          // Jika harga berupa string dengan pemisah ribuan (misal "1.000"), hilangkan titiknya untuk parsing
+          if (typeof hargaValue === "string") {
+            hargaValue = Number(hargaValue.replace(/\./g, ""));
+          }
+          // Format harga dengan locale Indonesia (contoh: 1000 => "1.000")
+          const formattedHarga = hargaValue.toLocaleString("id-ID");
+          return {
+            ...kemasan.toJSON(),
+            harga: formattedHarga,
+          };
+        });
+      }
+
+      // Adjust overheads: format harga dengan cara yang sama
+      let overheads = [];
+      if (produk.overheads && produk.overheads.length > 0) {
+        overheads = produk.overheads.map((overhead) => {
+          let hargaValue = overhead.harga;
+          if (typeof hargaValue === "string") {
+            hargaValue = Number(hargaValue.replace(/\./g, ""));
+          }
+          const formattedHarga = hargaValue.toLocaleString("id-ID");
+          return {
+            ...overhead.toJSON(),
+            harga: formattedHarga,
+          };
+        });
+      }
 
       return {
         ...produk.toJSON(),
         bahanbakumodel,
+        kemasans,
+        overheads,
       };
     });
 

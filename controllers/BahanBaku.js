@@ -25,6 +25,15 @@ const addBahanBaku = async (req, res) => {
   try {
     const { BahanBaku, Satuan, Harga } = req.body;
 
+    // Pastikan Harga disimpan sebagai angka desimal dengan titik sebagai pemisah
+    const parsedHarga = parseFloat(String(Harga).replace(",", "."));
+
+    if (isNaN(parsedHarga)) {
+      return res
+        .status(400)
+        .json({ message: "Harga harus berupa angka desimal yang valid" });
+    }
+
     // Validasi: Pastikan Satuan maksimal 3 huruf
     if (!/^[A-Za-z]{1,3}$/.test(Satuan)) {
       return res.status(400).json({
@@ -32,9 +41,9 @@ const addBahanBaku = async (req, res) => {
       });
     }
 
-    // Create a new record in the BahanBakuModel
+    // Gunakan parsedHarga untuk menyimpan ke database
     const newBahanBaku = await BahanBakuModel.create(
-      { BahanBaku, Satuan, Harga },
+      { BahanBaku, Satuan, Harga: parsedHarga },
       { transaction }
     );
 

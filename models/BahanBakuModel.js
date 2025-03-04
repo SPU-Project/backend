@@ -28,7 +28,7 @@ const BahanBakuModel = db.define(
       // },
     },
     Harga: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.FLOAT,
       allowNull: false,
       validate: {
         notEmpty: true,

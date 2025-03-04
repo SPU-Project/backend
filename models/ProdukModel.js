@@ -13,38 +13,38 @@ const ProdukModel = db.define(
       },
     },
     hpp: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
       allowNull: false,
       validate: {
         notEmpty: true,
       },
     },
     margin20: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin30: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin40: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin50: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin60: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin70: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin80: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin90: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
     margin100: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
     },
   },
   {

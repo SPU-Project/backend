@@ -13,7 +13,7 @@ const OverheadModel = db.define(
       },
     },
     harga: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
       allowNull: false,
       validate: {
         notEmpty: true,
