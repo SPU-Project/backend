@@ -5,6 +5,13 @@ const db = require("../config/Database.js");
 const ProdukModel = db.define(
   "ProdukModel",
   {
+    KodeProduksi: {
+      type: Sequelize.DataTypes.STRING,
+      allowNull: false,
+      validate: {
+        notEmpty: true,
+      },
+    },
     namaProduk: {
       type: Sequelize.DataTypes.STRING,
       allowNull: false,

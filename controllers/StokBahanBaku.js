@@ -2,6 +2,7 @@ const db = require("../config/Database.js");
 const sequelize = db; // Assuming db exports the Sequelize instance
 
 const StokBahanBaku = require("../models/StokBahanBakuModel.js");
+const BahanBakuModel = require("../models/BahanBakuModel.js");
 const Admin = require("../models/AdminModel.js");
 const RiwayatLog = require("../models/RiwayatLog.js");
 
@@ -18,6 +19,7 @@ const getUserInfo = async (req) => {
 
 //Update
 // Function to update a Bahan Baku by id
+//Update
 const updateStokBahanBaku = async (req, res) => {
   const transaction = await sequelize.transaction();
 
@@ -25,6 +27,7 @@ const updateStokBahanBaku = async (req, res) => {
     const { id } = req.params;
     const { Stok } = req.body;
 
+    // Cari stok berdasarkan id
     const stokbahanbaku = await StokBahanBaku.findByPk(id, { transaction });
     if (!stokbahanbaku) {
       await transaction.rollback();
@@ -33,19 +36,20 @@ const updateStokBahanBaku = async (req, res) => {
         .json({ message: "Stok Bahan Baku tidak ditemukan" });
     }
 
-    // Save old data for logging
+    // Simpan stok lama untuk log
     const oldstokbahanbaku = stokbahanbaku.Stok;
 
-    // Update fields
+    // Update stok dan tanggal
     stokbahanbaku.Stok = Stok;
     stokbahanbaku.TanggalPembaruan = new Date();
 
+    // Simpan perubahan
     await stokbahanbaku.save({ transaction });
 
-    // Get user info
+    // Dapatkan informasi pengguna
     const user = await getUserInfo(req);
 
-    // Save log to RiwayatLog
+    // Buat log ke RiwayatLog
     if (user) {
       await RiwayatLog.create(
         {
@@ -57,15 +61,36 @@ const updateStokBahanBaku = async (req, res) => {
       );
     }
 
-    // Commit the transaction
+    // Commit transaction agar data persisten di DB
     await transaction.commit();
 
+    // Ambil ulang data beserta relasi BahanBakuModel untuk dapatkan Satuan
+    const updatedItem = await StokBahanBaku.findOne({
+      where: { id },
+      include: [{ model: BahanBakuModel, attributes: ["Satuan"] }],
+    });
+
+    // Flatten data agar format sama dengan getAllStokBahanBaku
+    const data = {
+      id: updatedItem.id,
+      BahanBakuId: updatedItem.BahanBakuId,
+      BahanBaku: updatedItem.BahanBaku, // Jika BahanBaku disimpan di kolom ini
+      Stok: updatedItem.Stok,
+      Satuan: updatedItem.bahanbakumodel
+        ? updatedItem.bahanbakumodel.Satuan
+        : null,
+      TanggalPembaruan: updatedItem.TanggalPembaruan,
+      createdAt: updatedItem.createdAt,
+      updatedAt: updatedItem.updatedAt,
+    };
+
+    // Kembalikan respons
     res.status(200).json({
       message: "Stok Bahan Baku Berhasil Diupdate",
-      data: stokbahanbaku,
+      data: data,
     });
   } catch (error) {
-    // Rollback the transaction in case of error
+    // Rollback transaction jika error
     await transaction.rollback();
     console.error("Error updating Stok Bahan Baku:", error.message);
     return res.status(500).json({
@@ -79,11 +104,27 @@ const updateStokBahanBaku = async (req, res) => {
 const getAllStokBahanBaku = async (req, res) => {
   try {
     // Fetch all records from BahanBakuModel
-    const stokbahanbakulist = await StokBahanBaku.findAll();
+    const stokbahanbakulist = await StokBahanBaku.findAll({
+      include: [{ model: BahanBakuModel, attributes: ["Satuan"] }],
+    });
+
+    const data = stokbahanbakulist.map((item) => {
+      return {
+        id: item.id,
+        BahanBakuId: item.BahanBakuId,
+        BahanBaku: item.BahanBaku, // jika di DB kolom ini terpisah, pakai item.BahanBaku
+        Stok: item.Stok,
+        // Ambil Satuan dari relasi BahanBakuModel
+        Satuan: item.bahanbakumodel ? item.bahanbakumodel.Satuan : null,
+        TanggalPembaruan: item.TanggalPembaruan,
+        createdAt: item.createdAt,
+        updatedAt: item.updatedAt,
+      };
+    });
 
     res.status(200).json({
       message: "Daftar Stok Bahan Baku",
-      data: stokbahanbakulist,
+      data: data,
     });
   } catch (error) {
     res.status(400).json({

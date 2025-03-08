@@ -7,6 +7,7 @@ const KemasanModel = require("../models/KemasanModel.js");
 const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
 const RiwayatLog = require("../models/RiwayatLog.js");
 const Admin = require("../models/AdminModel.js");
+const getNextBatchNumber = require("../utils/getNextBatchNumber.js");
 
 const getUserInfo = async (req) => {
   if (!req.session.userId) return null;
@@ -51,7 +52,8 @@ const addProduk = async (req, res) => {
         });
       }
 
-      // Calculate cost per gram from cost per kilogram
+      // Calculate cost per gram (atau per satuan)
+      // di sini Anda sudah menyesuaikan => "const hargaPerGram = bahan.Harga;"
       const hargaPerGram = bahan.Harga;
       totalBahanBaku += hargaPerGram * item.jumlah;
     }
@@ -63,8 +65,25 @@ const addProduk = async (req, res) => {
     // Step 4: Calculate HPP
     const hpp = totalBahanBaku + totalOverhead + totalKemasan;
 
+    // ===== Generate KodeProduksi (tanpa random, pakai batch DB) =====
+    let prefix = namaProduk.replace(/\s+/g, "").substring(0, 3).toUpperCase();
+
+    const now = new Date();
+    const yy = now.getFullYear().toString().slice(-2); // "25"
+    const mm = String(now.getMonth() + 1).padStart(2, "0"); // "03"
+
+    const batch = await getNextBatchNumber(prefix, yy, mm);
+    // misal batch=1 jika belum ada product di 'GAR2503%'
+
+    // Bentuk kodenya => "GAR2503-1" (atau format lain, misal padStart 3 digit => "GAR2503-001")
+    const kodeProduksi = `${prefix}${yy}${mm}-${batch}`;
+    // ===== /Generate KodeProduksi =====
+
     // Step 5: Save the new product
     const produkBaru = await ProdukModel.create({
+      // kolom baru
+      KodeProduksi: kodeProduksi,
+
       namaProduk: namaProduk,
       hpp: hpp,
       margin20: Math.round(hpp * 1.2),
@@ -105,12 +124,8 @@ const addProduk = async (req, res) => {
       });
     }
 
-    // **Tambahkan Bagian RiwayatLog (Seperti di updateProduk)**
-
-    // Dapatkan informasi pengguna
+    // Bagian RiwayatLog
     const user = await getUserInfo(req);
-
-    // Simpan log ke RiwayatLog
     if (user) {
       await RiwayatLog.create({
         username: user.username,
@@ -119,7 +134,6 @@ const addProduk = async (req, res) => {
       });
     }
 
-    // Optionally, return the newly created product data
     res.status(201).json({
       message: "Produk berhasil ditambahkan",
       data: produkBaru,
@@ -337,6 +351,7 @@ const getAllProdukBahanBaku = async (req, res) => {
     const produkList = await ProdukModel.findAll({
       attributes: [
         "id",
+        "KodeProduksi",
         "namaProduk",
         "hpp",
         "margin20",
@@ -374,7 +389,22 @@ const getAllProdukBahanBaku = async (req, res) => {
 
     // Adjust the data for each product
     const adjustedProdukList = produkList.map((produk) => {
-      // Adjust the bahanbakumodel data
+      console.log("Raw kodeProduksi:", produk.KodeProduksi);
+      console.log("Array of chars:", [...produk.KodeProduksi]);
+      console.log(
+        "Char codes:",
+        [...produk.KodeProduksi].map((c) => c.charCodeAt(0))
+      );
+      // --- 1) Buat batch dari kodeProduksi ---
+      let batchValue = "";
+      if (produk.KodeProduksi) {
+        const splitted = produk.KodeProduksi.split("-");
+        if (splitted.length > 1) {
+          batchValue = splitted[1]; // Bagian setelah "-"
+        }
+      }
+
+      // --- 2) Adjust bahanbakumodel data ---
       let bahanbakumodel = [];
       if (produk.bahanbakumodel && produk.bahanbakumodel.length > 0) {
         bahanbakumodel = produk.bahanbakumodel.map((bahanBaku) => {
@@ -389,16 +419,15 @@ const getAllProdukBahanBaku = async (req, res) => {
           };
         });
       }
-      // Adjust kemasans: format harga agar menampilkan seluruh angka nol
+
+      // --- 3) Adjust kemasans ---
       let kemasans = [];
       if (produk.kemasans && produk.kemasans.length > 0) {
         kemasans = produk.kemasans.map((kemasan) => {
           let hargaValue = kemasan.harga;
-          // Jika harga berupa string dengan pemisah ribuan (misal "1.000"), hilangkan titiknya untuk parsing
           if (typeof hargaValue === "string") {
             hargaValue = Number(hargaValue.replace(/\./g, ""));
           }
-          // Format harga dengan locale Indonesia (contoh: 1000 => "1.000")
           const formattedHarga = hargaValue.toLocaleString("id-ID");
           return {
             ...kemasan.toJSON(),
@@ -407,7 +436,7 @@ const getAllProdukBahanBaku = async (req, res) => {
         });
       }
 
-      // Adjust overheads: format harga dengan cara yang sama
+      // --- 4) Adjust overheads ---
       let overheads = [];
       if (produk.overheads && produk.overheads.length > 0) {
         overheads = produk.overheads.map((overhead) => {
@@ -425,6 +454,7 @@ const getAllProdukBahanBaku = async (req, res) => {
 
       return {
         ...produk.toJSON(),
+        batch: batchValue, // Tambahkan atribut batch
         bahanbakumodel,
         kemasans,
         overheads,
