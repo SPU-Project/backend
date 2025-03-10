@@ -2,6 +2,7 @@
 
 const StatusProduksiModel = require("../models/StatusProduksiModel.js");
 const ProdukModel = require("../models/ProdukModel.js");
+const { Op } = require("sequelize");
 
 // Ambil semua data StatusProduksi
 exports.getAllStatusProduksi = async (req, res) => {
@@ -70,6 +71,23 @@ exports.createStatusProduksi = async (req, res) => {
       });
     }
 
+    // ========== Tambahkan Pengecekan Unik (KodeProduksi,Batch) ==========
+    // Cari di StatusProduksiModel apakah sudah ada baris dengan
+    // KodeProduksi dan Batch yang sama
+    const existingCombo = await StatusProduksiModel.findOne({
+      where: {
+        KodeProduksi: KodeProduksi,
+        Batch: Batch,
+      },
+    });
+
+    if (existingCombo) {
+      return res.status(400).json({
+        message: `Pada KodeProduksi ${KodeProduksi}, Batch '${Batch}' sudah ada. Harap gunakan Batch berbeda.`,
+      });
+    }
+    // ========== /Pengecekan Unik (KodeProduksi,Batch) ==========
+
     // 3) Ambil namaProduk dari ProdukModel
     const namaProdukDariProdukModel = foundProduct.namaProduk;
 
@@ -119,6 +137,22 @@ exports.updateStatusProduksi = async (req, res) => {
         .status(404)
         .json({ message: "Data StatusProduksi tidak ditemukan" });
     }
+
+    // ========== Tambahkan Pengecekan Unik (KodeProduksi,Batch) ==========
+    // Jika user mengubah KodeProduksi / Batch, cek apakah sudah dipakai record lain.
+    const existingCombo = await StatusProduksiModel.findOne({
+      where: {
+        KodeProduksi,
+        Batch,
+        id: { [Op.ne]: id }, // record yang ID-nya bukan ID ini
+      },
+    });
+    if (existingCombo) {
+      return res.status(400).json({
+        message: `Untuk KodeProduksi=${KodeProduksi}, Batch='${Batch}' sudah terpakai. Gunakan batch lain.`,
+      });
+    }
+    // ========== /Pengecekan Unik ==========
 
     // Perbarui kolom
     item.KodeProduksi = KodeProduksi;
