@@ -20,18 +20,17 @@ const StatusProduksiModel = db.define(
         notEmpty: true,
       },
     },
-    IdProduk: {
-      type: Sequelize.DataTypes.INTEGER, // Gunakan Sequelize.DataTypes di sini
-      allowNull: true,
-      unique: false,
+    TanggalSelesai: {
+      type: Sequelize.DataTypes.DATE, // Menggunakan DATE untuk timestamp
+      allowNull: true, // Menyimpan timestamp otomatis saat record dibuat
       validate: {
         notEmpty: false,
       },
     },
     NamaProduk: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: false,
-      unique: true,
+      allowNull: true,
+      unique: false,
       validate: {
         notEmpty: true,
       },
@@ -41,20 +40,6 @@ const StatusProduksiModel = db.define(
       allowNull: true,
       validate: {
         notEmpty: true,
-      },
-    },
-    BahanBaku: {
-      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: true,
-      validate: {
-        notEmpty: false,
-      },
-    },
-    JumlahBahanBaku: {
-      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: true,
-      validate: {
-        notEmpty: false,
       },
     },
     Satuan: {
@@ -74,13 +59,6 @@ const StatusProduksiModel = db.define(
     StatusProduksi: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
       allowNull: true,
-      validate: {
-        notEmpty: false,
-      },
-    },
-    TanggalSelesai: {
-      type: Sequelize.DataTypes.DATE, // Menggunakan DATE untuk timestamp
-      allowNull: true, // Menyimpan timestamp otomatis saat record dibuat
       validate: {
         notEmpty: false,
       },

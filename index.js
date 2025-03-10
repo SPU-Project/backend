@@ -26,13 +26,17 @@ const ProdukRoute = require("./routes/ProdukRoute.js");
 const uploadRoute = require("./routes/uploadRoute.js");
 const RiwayatRoute = require("./routes/RiwayatRoute.js");
 const StokBahanBakuRoute = require("./routes/StokBahanBakuRoute.js");
+const StatusProduk = require("./routes/StatusProduk.js");
 
 //Test Connection Cpanel
 dotenv.config();
 
 const app = express();
+const cronStatusProduksi = require("./utils/cronStatusProduksi.js");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+cronStatusProduksi();
 
 const sessionStore = SequelizeStore(session.Store);
 const store = new sessionStore({
@@ -111,6 +115,7 @@ app.use("/uploads", express.static("uploads")); // Untuk melayani file gambar ya
 app.use(uploadRoute);
 app.use(RiwayatRoute);
 app.use(StokBahanBakuRoute);
+app.use(StatusProduk);
 
 store.sync();
 

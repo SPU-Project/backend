@@ -19,17 +19,6 @@ StokBahanBaku.belongsTo(BahanBakuModel, {
   foreignKey: "BahanBakuId",
 });
 
-// ProdukModel and StatusProduksiModel one-to-one association
-ProdukModel.hasOne(StatusProduksiModel, {
-  foreignKey: "IdProduk",
-  onDelete: "CASCADE",
-  onUpdate: "CASCADE",
-});
-
-StatusProduksiModel.belongsTo(ProdukModel, {
-  foreignKey: "IdProduk",
-});
-
 // ProdukModel and BahanBakuModel many-to-many association through ProdukBahanBakuModel
 ProdukModel.belongsToMany(BahanBakuModel, {
   through: ProdukBahanBakuModel,
