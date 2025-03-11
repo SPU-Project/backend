@@ -15,6 +15,7 @@ const ProdukModel = require("./models/ProdukModel.js");
 const RiwayatLog = require("./models/RiwayatLog.js");
 const StokBahanBaku = require("./models/StokBahanBakuModel.js");
 const StatusProduksiModel = require("./models/StatusProduksiModel.js");
+const PenjualanProdukModel = require("./models/PenjualanProdukModel.js");
 
 require("./models/association.js");
 
@@ -27,6 +28,7 @@ const uploadRoute = require("./routes/uploadRoute.js");
 const RiwayatRoute = require("./routes/RiwayatRoute.js");
 const StokBahanBakuRoute = require("./routes/StokBahanBakuRoute.js");
 const StatusProduk = require("./routes/StatusProduk.js");
+const PenjualanProduk = require("./routes/PenjualanProduk.js");
 
 //Test Connection Cpanel
 dotenv.config();
@@ -64,6 +66,7 @@ const store = new sessionStore({
     await RiwayatLog.sync({ alter: true });
     await StokBahanBaku.sync({ alter: true });
     await StatusProduksiModel.sync({ alter: true });
+    await PenjualanProdukModel.sync({ alter: true });
 
     console.log("Database synced...");
   } catch (error) {
@@ -116,6 +119,7 @@ app.use(uploadRoute);
 app.use(RiwayatRoute);
 app.use(StokBahanBakuRoute);
 app.use(StatusProduk);
+app.use(PenjualanProduk);
 
 store.sync();
 
