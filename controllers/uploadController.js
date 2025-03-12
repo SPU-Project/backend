@@ -1,6 +1,7 @@
 // controllers/uploadController.js
 
 const Admin = require("../models/AdminModel.js");
+const RiwayatLog = require("../models/RiwayatLog.js"); // Tambahkan ini
 const path = require("path");
 const fs = require("fs").promises; // Menggunakan fs dengan promises
 
@@ -19,8 +20,16 @@ const uploadProfileImage = async (req, res) => {
       return res.status(404).json({ message: "Admin tidak ditemukan" });
     }
 
+    // Update field profileImage
     admin.profileImage = filePath;
     await admin.save();
+
+    // Simpan log ke RiwayatLog
+    await RiwayatLog.create({
+      username: admin.username,
+      role: admin.role,
+      description: `Mengunggah gambar profil`,
+    });
 
     res.status(200).json({
       message: "Gambar profil berhasil diunggah",

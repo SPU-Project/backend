@@ -318,7 +318,7 @@ exports.updatePenjualanProduk = async (req, res) => {
       await RiwayatLog.create({
         username: user.username,
         role: user.role,
-        description: `Mengupdate Penjualan Produk: ${NamaProduk} Batch ${Batch} ke Margin ${Margin}`,
+        description: `Mengupdate Penjualan Produk: ${NamaProduk} Batch ${Batch} ke Terjual ${terjualNum}`,
       });
     }
 
