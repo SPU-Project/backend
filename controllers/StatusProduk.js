@@ -1,10 +1,24 @@
-// C:\Hasan\SV IPB\Semester 7\Backend\controllers\StatusProduk.js
-
 const StatusProduksiModel = require("../models/StatusProduksiModel.js");
 const ProdukModel = require("../models/ProdukModel.js");
 const { Op } = require("sequelize");
+const RiwayatLog = require("../models/RiwayatLog.js");
+const Admin = require("../models/AdminModel.js");
 
-// Ambil semua data StatusProduksi
+// Import database instance untuk transaksi
+const db = require("../config/Database.js");
+const sequelize = db;
+
+// Helper: mendapatkan info user
+const getUserInfo = async (req) => {
+  if (!req.session.userId) return null;
+  const user = await Admin.findOne({
+    attributes: ["username", "role"],
+    where: { id: req.session.userId },
+  });
+  return user;
+};
+
+// GET ALL
 exports.getAllStatusProduksi = async (req, res) => {
   try {
     const items = await StatusProduksiModel.findAll();
@@ -20,18 +34,16 @@ exports.getAllStatusProduksi = async (req, res) => {
   }
 };
 
-// Ambil satu data StatusProduksi berdasarkan id
+// GET BY ID
 exports.getStatusProduksiById = async (req, res) => {
   try {
     const { id } = req.params;
     const item = await StatusProduksiModel.findByPk(id);
-
     if (!item) {
       return res
         .status(404)
         .json({ message: "Data StatusProduksi tidak ditemukan" });
     }
-
     res.status(200).json({
       message: "Berhasil mengambil data StatusProduksi",
       data: item,
@@ -44,71 +56,82 @@ exports.getStatusProduksiById = async (req, res) => {
   }
 };
 
-// Tambah data baru StatusProduksi
+// CREATE StatusProduksi dengan transaksi dan log Riwayat
 exports.createStatusProduksi = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
-    // Destruktur data dari body
     const {
       KodeProduksi,
       TanggalProduksi,
       TanggalSelesai,
-      // NamaProduk, // <- DIHAPUS dari body agar user tidak perlu kirim
       Batch,
       Satuan,
       JumlahProduksi,
       StatusProduksi,
     } = req.body;
 
-    // 1) Cek KodeProduksi di ProdukModel
+    // Cek KodeProduksi di ProdukModel
     const foundProduct = await ProdukModel.findOne({
       where: { KodeProduksi },
+      transaction,
     });
-
-    // 2) Jika tidak ditemukan, return error
     if (!foundProduct) {
+      await transaction.rollback();
       return res.status(404).json({
         message: "KodeProduksi yang anda cari tidak ditemukan",
       });
     }
 
-    // ========== Tambahkan Pengecekan Unik (KodeProduksi,Batch) ==========
-    // Cari di StatusProduksiModel apakah sudah ada baris dengan
-    // KodeProduksi dan Batch yang sama
+    // Pengecekan unik (KodeProduksi, Batch)
     const existingCombo = await StatusProduksiModel.findOne({
-      where: {
-        KodeProduksi: KodeProduksi,
-        Batch: Batch,
-      },
+      where: { KodeProduksi, Batch },
+      transaction,
     });
-
     if (existingCombo) {
+      await transaction.rollback();
       return res.status(400).json({
         message: `Pada KodeProduksi ${KodeProduksi}, Batch '${Batch}' sudah ada. Harap gunakan Batch berbeda.`,
       });
     }
-    // ========== /Pengecekan Unik (KodeProduksi,Batch) ==========
 
-    // 3) Ambil namaProduk dari ProdukModel
+    // Ambil NamaProduk dari ProdukModel
     const namaProdukDariProdukModel = foundProduct.namaProduk;
 
-    // 4) Buat record di StatusProduksiModel,
-    //    isi NamaProduk dengan namaProdukDariProdukModel
-    const newItem = await StatusProduksiModel.create({
-      KodeProduksi,
-      TanggalProduksi,
-      TanggalSelesai,
-      NamaProduk: namaProdukDariProdukModel, // isi otomatis dari ProdukModel
-      Batch,
-      Satuan,
-      JumlahProduksi,
-      StatusProduksi,
-    });
+    // Buat record di StatusProduksiModel
+    const newItem = await StatusProduksiModel.create(
+      {
+        KodeProduksi,
+        TanggalProduksi,
+        TanggalSelesai,
+        NamaProduk: namaProdukDariProdukModel,
+        Batch,
+        Satuan,
+        JumlahProduksi,
+        StatusProduksi,
+      },
+      { transaction }
+    );
 
+    // Simpan log Riwayat
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Menambahkan Status Produksi: ${namaProdukDariProdukModel} dengan Batch ${Batch}`,
+        },
+        { transaction }
+      );
+    }
+
+    await transaction.commit();
     res.status(201).json({
       message: "StatusProduksi berhasil ditambahkan",
       data: newItem,
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       message: "Gagal menambahkan StatusProduksi",
       error: error.message,
@@ -116,8 +139,9 @@ exports.createStatusProduksi = async (req, res) => {
   }
 };
 
-// Update data StatusProduksi berdasarkan id
+// UPDATE StatusProduksi dengan transaksi dan log Riwayat
 exports.updateStatusProduksi = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const {
@@ -131,30 +155,31 @@ exports.updateStatusProduksi = async (req, res) => {
       StatusProduksi,
     } = req.body;
 
-    const item = await StatusProduksiModel.findByPk(id);
+    const item = await StatusProduksiModel.findByPk(id, { transaction });
     if (!item) {
+      await transaction.rollback();
       return res
         .status(404)
         .json({ message: "Data StatusProduksi tidak ditemukan" });
     }
 
-    // ========== Tambahkan Pengecekan Unik (KodeProduksi,Batch) ==========
-    // Jika user mengubah KodeProduksi / Batch, cek apakah sudah dipakai record lain.
+    // Pengecekan unik (KodeProduksi, Batch) untuk update
     const existingCombo = await StatusProduksiModel.findOne({
       where: {
         KodeProduksi,
         Batch,
-        id: { [Op.ne]: id }, // record yang ID-nya bukan ID ini
+        id: { [Op.ne]: id },
       },
+      transaction,
     });
     if (existingCombo) {
+      await transaction.rollback();
       return res.status(400).json({
-        message: `Untuk KodeProduksi=${KodeProduksi}, Batch='${Batch}' sudah terpakai. Gunakan batch lain.`,
+        message: `Untuk KodeProduksi=${KodeProduksi}, Batch '${Batch}' sudah terpakai. Gunakan batch lain.`,
       });
     }
-    // ========== /Pengecekan Unik ==========
 
-    // Perbarui kolom
+    // Update field
     item.KodeProduksi = KodeProduksi;
     item.TanggalProduksi = TanggalProduksi;
     item.TanggalSelesai = TanggalSelesai;
@@ -164,13 +189,28 @@ exports.updateStatusProduksi = async (req, res) => {
     item.JumlahProduksi = JumlahProduksi;
     item.StatusProduksi = StatusProduksi;
 
-    await item.save();
+    await item.save({ transaction });
 
+    // Simpan log Riwayat
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Mengupdate Status Produksi: ${NamaProduk} dengan Batch ${Batch}`,
+        },
+        { transaction }
+      );
+    }
+
+    await transaction.commit();
     res.status(200).json({
       message: "StatusProduksi berhasil diperbarui",
       data: item,
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       message: "Gagal memperbarui StatusProduksi",
       error: error.message,
@@ -178,24 +218,40 @@ exports.updateStatusProduksi = async (req, res) => {
   }
 };
 
-// Hapus data StatusProduksi berdasarkan id
+// DELETE StatusProduksi dengan transaksi dan log Riwayat
 exports.deleteStatusProduksi = async (req, res) => {
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
-    const item = await StatusProduksiModel.findByPk(id);
-
+    const item = await StatusProduksiModel.findByPk(id, { transaction });
     if (!item) {
+      await transaction.rollback();
       return res
         .status(404)
         .json({ message: "Data StatusProduksi tidak ditemukan" });
     }
 
-    await item.destroy();
+    await item.destroy({ transaction });
 
+    // Simpan log Riwayat
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create(
+        {
+          username: user.username,
+          role: user.role,
+          description: `Menghapus Status Produksi: ${item.NamaProduk} dengan Batch ${item.Batch}`,
+        },
+        { transaction }
+      );
+    }
+
+    await transaction.commit();
     res.status(200).json({
       message: "StatusProduksi berhasil dihapus",
     });
   } catch (error) {
+    await transaction.rollback();
     res.status(500).json({
       message: "Gagal menghapus StatusProduksi",
       error: error.message,

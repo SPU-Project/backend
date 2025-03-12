@@ -1,11 +1,21 @@
-// C:\Hasan\SV IPB\Semester 7\Backend\controllers\PenjualanProduk.js
-
 const PenjualanProdukModel = require("../models/PenjualanProdukModel.js");
 const ProdukModel = require("../models/ProdukModel.js");
 const StatusProduksiModel = require("../models/StatusProduksiModel.js");
-const { Op } = require("sequelize"); // Untuk berbagai operator
+const { Op } = require("sequelize");
+const RiwayatLog = require("../models/RiwayatLog.js");
+const Admin = require("../models/AdminModel.js");
 
-// Helper: daftar margin yang diperbolehkan
+// Helper function untuk mendapatkan info user
+const getUserInfo = async (req) => {
+  if (!req.session.userId) return null;
+  const user = await Admin.findOne({
+    attributes: ["username", "role"],
+    where: { id: req.session.userId },
+  });
+  return user;
+};
+
+// Daftar margin yang diperbolehkan
 const VALID_MARGINS = [
   "20%",
   "30%",
@@ -101,11 +111,10 @@ exports.createPenjualanProduk = async (req, res) => {
     }
 
     // Dapatkan JumlahProduksi
-    const { JumlahProduksi } = statusData; // string, mungkin convert to number
+    const { JumlahProduksi } = statusData; // string, mungkin perlu konversi ke number
     const jumlahProdNum = Number(JumlahProduksi) || 0;
 
-    // 4) Cari di ProdukModel => namaProduk = NamaProduk
-    //    (field di ProdukModel bernama 'namaProduk' => huruf kecil)
+    // 4) Cari di ProdukModel => namaProduk (huruf kecil) sama dengan NamaProduk
     const produkData = await ProdukModel.findOne({
       where: {
         namaProduk: NamaProduk,
@@ -117,8 +126,7 @@ exports.createPenjualanProduk = async (req, res) => {
       });
     }
 
-    // Pilih kolom margin di ProdukModel
-    // contoh: jika Margin="20%" -> ambil produkData.margin20
+    // Pilih kolom margin dari ProdukModel sesuai Margin input
     let marginValue = null;
     switch (Margin) {
       case "20%":
@@ -155,15 +163,14 @@ exports.createPenjualanProduk = async (req, res) => {
       });
     }
 
-    // Hitung HargaSatuan = marginValue / jumlahProdNum
-    // default 1 kalau jumlahProdNum=0 => hindari division by zero
+    // Hitung HargaSatuan = marginValue / jumlahProdNum (hindari division by zero)
     const hargaSatuan =
       jumlahProdNum === 0 ? 0 : Number(marginValue) / jumlahProdNum;
 
     // Terjual (optional)
     const terjualNum = Number(Terjual) || 0;
 
-    // Pendapatan = hargaSatuan * terjualNum
+    // Hitung Pendapatan = hargaSatuan * terjualNum
     const pendapatan = hargaSatuan * terjualNum;
 
     // Simpan ke PenjualanProdukModel
@@ -176,6 +183,16 @@ exports.createPenjualanProduk = async (req, res) => {
       HargaSatuan: hargaSatuan,
       Pendapatan: pendapatan,
     });
+
+    // Integrasi Riwayat Log: Catat aktivitas pembuatan
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menambahkan Penjualan Produk: ${NamaProduk} Batch ${Batch} dengan Margin ${Margin}`,
+      });
+    }
 
     res.status(201).json({
       message: "Data Penjualan Produk berhasil ditambahkan",
@@ -206,26 +223,23 @@ exports.updatePenjualanProduk = async (req, res) => {
         .json({ message: "Data PenjualanProduk tidak ditemukan" });
     }
 
-    // 1) Validasi minimal
+    // Validasi minimal
     if (!NamaProduk || !Batch || !Margin) {
       return res.status(400).json({
         message: "NamaProduk, Batch, dan Margin harus diisi",
       });
     }
 
-    // 2) Validasi Margin
+    // Validasi Margin
     if (!VALID_MARGINS.includes(Margin)) {
       return res.status(400).json({
         message: `Margin tidak valid. Hanya boleh: ${VALID_MARGINS.join(", ")}`,
       });
     }
 
-    // 3) Cari di StatusProduksiModel => NamaProduk & Batch
+    // Cari di StatusProduksiModel => NamaProduk & Batch
     const statusData = await StatusProduksiModel.findOne({
-      where: {
-        NamaProduk,
-        Batch,
-      },
+      where: { NamaProduk, Batch },
     });
     if (!statusData) {
       return res.status(404).json({
@@ -235,11 +249,9 @@ exports.updatePenjualanProduk = async (req, res) => {
     }
     const jumlahProdNum = Number(statusData.JumlahProduksi) || 0;
 
-    // 4) Cari di ProdukModel => namaProduk=NamaProduk
+    // Cari di ProdukModel => namaProduk
     const produkData = await ProdukModel.findOne({
-      where: {
-        namaProduk: NamaProduk,
-      },
+      where: { namaProduk: NamaProduk },
     });
     if (!produkData) {
       return res.status(404).json({
@@ -247,7 +259,7 @@ exports.updatePenjualanProduk = async (req, res) => {
       });
     }
 
-    // Pilih marginValue
+    // Pilih marginValue dari ProdukModel
     let marginValue = null;
     switch (Margin) {
       case "20%":
@@ -300,6 +312,16 @@ exports.updatePenjualanProduk = async (req, res) => {
 
     await item.save();
 
+    // Integrasi Riwayat Log: Catat aktivitas update
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Mengupdate Penjualan Produk: ${NamaProduk} Batch ${Batch} ke Margin ${Margin}`,
+      });
+    }
+
     res.status(200).json({
       message: "Data Penjualan Produk berhasil diperbarui",
       data: item,
@@ -327,6 +349,16 @@ exports.deletePenjualanProduk = async (req, res) => {
     }
 
     await item.destroy();
+
+    // Integrasi Riwayat Log: Catat aktivitas delete
+    const user = await getUserInfo(req);
+    if (user) {
+      await RiwayatLog.create({
+        username: user.username,
+        role: user.role,
+        description: `Menghapus Penjualan Produk: ${item.NamaProduk} Batch ${item.Batch}`,
+      });
+    }
 
     res.status(200).json({
       message: "PenjualanProduk berhasil dihapus",
