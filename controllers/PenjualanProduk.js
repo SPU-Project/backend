@@ -106,13 +106,21 @@ exports.createPenjualanProduk = async (req, res) => {
     if (!statusData) {
       return res.status(404).json({
         message:
-          "NamaProduk,Batch yang anda masukkan tidak ditemukan di StatusProduksiModel",
+          "NamaProduk, Batch yang anda masukkan tidak ditemukan di StatusProduksiModel",
       });
     }
 
-    // Dapatkan JumlahProduksi
-    const { JumlahProduksi } = statusData; // string, mungkin perlu konversi ke number
+    // Dapatkan JumlahProduksi (string, konversi ke number)
+    const { JumlahProduksi } = statusData;
     const jumlahProdNum = Number(JumlahProduksi) || 0;
+
+    // Validasi: Nilai Terjual tidak boleh melebihi JumlahProduksi
+    const terjualNum = Number(Terjual) || 0;
+    if (terjualNum > jumlahProdNum) {
+      return res.status(400).json({
+        message: "Nilai Terjual tidak boleh melebihi JumlahProduksi",
+      });
+    }
 
     // 4) Cari di ProdukModel => namaProduk (huruf kecil) sama dengan NamaProduk
     const produkData = await ProdukModel.findOne({
@@ -166,10 +174,6 @@ exports.createPenjualanProduk = async (req, res) => {
     // Hitung HargaSatuan = marginValue / jumlahProdNum (hindari division by zero)
     const hargaSatuan =
       jumlahProdNum === 0 ? 0 : Number(marginValue) / jumlahProdNum;
-
-    // Terjual (optional)
-    const terjualNum = Number(Terjual) || 0;
-
     // Hitung Pendapatan = hargaSatuan * terjualNum
     const pendapatan = hargaSatuan * terjualNum;
 
@@ -244,7 +248,7 @@ exports.updatePenjualanProduk = async (req, res) => {
     if (!statusData) {
       return res.status(404).json({
         message:
-          "NamaProduk,Batch yang anda masukkan tidak ditemukan di StatusProduksiModel",
+          "NamaProduk, Batch yang anda masukkan tidak ditemukan di StatusProduksiModel",
       });
     }
     const jumlahProdNum = Number(statusData.JumlahProduksi) || 0;
@@ -296,9 +300,16 @@ exports.updatePenjualanProduk = async (req, res) => {
       });
     }
 
+    // Validasi: Terjual tidak boleh melebihi JumlahProduksi
+    const terjualNum = Number(Terjual) || 0;
+    if (terjualNum > jumlahProdNum) {
+      return res.status(400).json({
+        message: "Nilai Terjual tidak boleh melebihi JumlahProduksi",
+      });
+    }
+
     const hargaSatuan =
       jumlahProdNum === 0 ? 0 : Number(marginValue) / jumlahProdNum;
-    const terjualNum = Number(Terjual) || 0;
     const pendapatan = hargaSatuan * terjualNum;
 
     // Update fields

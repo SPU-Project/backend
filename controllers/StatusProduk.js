@@ -1,6 +1,8 @@
+const { Op } = require("sequelize");
 const StatusProduksiModel = require("../models/StatusProduksiModel.js");
 const ProdukModel = require("../models/ProdukModel.js");
-const { Op } = require("sequelize");
+const ProdukBahanBakuModel = require("../models/ProdukBahanBakuModel.js");
+const StokBahanBaku = require("../models/StokBahanBakuModel.js");
 const RiwayatLog = require("../models/RiwayatLog.js");
 const Admin = require("../models/AdminModel.js");
 
@@ -66,11 +68,11 @@ exports.createStatusProduksi = async (req, res) => {
       TanggalSelesai,
       Batch,
       Satuan,
-      JumlahProduksi,
+      JumlahProduksi, // Nilai produksi yang dimasukkan (misalnya sebagai string, kemudian dikonversi)
       StatusProduksi,
     } = req.body;
 
-    // Cek KodeProduksi di ProdukModel
+    // Cek ProdukModel dengan KodeProduksi
     const foundProduct = await ProdukModel.findOne({
       where: { KodeProduksi },
       transaction,
@@ -82,7 +84,7 @@ exports.createStatusProduksi = async (req, res) => {
       });
     }
 
-    // Pengecekan unik (KodeProduksi, Batch)
+    // Cek unik (KodeProduksi, Batch)
     const existingCombo = await StatusProduksiModel.findOne({
       where: { KodeProduksi, Batch },
       transaction,
@@ -98,7 +100,7 @@ exports.createStatusProduksi = async (req, res) => {
     const namaProdukDariProdukModel = foundProduct.namaProduk;
 
     // Buat record di StatusProduksiModel
-    const newItem = await StatusProduksiModel.create(
+    const newStatus = await StatusProduksiModel.create(
       {
         KodeProduksi,
         TanggalProduksi,
@@ -112,14 +114,47 @@ exports.createStatusProduksi = async (req, res) => {
       { transaction }
     );
 
-    // Simpan log Riwayat
+    // Update stok bahan baku berdasarkan data di ProdukBahanBakuModel
+    // Carilah semua record produk-bahan baku untuk ProdukModel tersebut
+    const produkBahanBakus = await ProdukBahanBakuModel.findAll({
+      where: { produkId: foundProduct.id },
+      transaction,
+    });
+
+    const productionQty = parseFloat(JumlahProduksi) || 0;
+    for (let pb of produkBahanBakus) {
+      const usage = parseFloat(pb.jumlah) || 0;
+      const deduction = productionQty * usage;
+      // Cari record stok berdasarkan bahanBakuId
+      const stokRecord = await StokBahanBaku.findOne({
+        where: { BahanBakuId: pb.bahanBakuId },
+        transaction,
+      });
+      if (!stokRecord) {
+        await transaction.rollback();
+        return res.status(404).json({
+          message: `Stok untuk bahan baku dengan ID ${pb.bahanBakuId} tidak ditemukan`,
+        });
+      }
+      // (Opsional) Periksa kecukupan stok
+      if (stokRecord.Stok < deduction) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: `Stok untuk bahan baku "${stokRecord.BahanBaku}" pada produksi "${namaProdukDariProdukModel}" kurang, Silahkan Tambahkan Stok Bahan Baku`,
+        });
+      }
+      stokRecord.Stok = stokRecord.Stok - deduction;
+      await stokRecord.save({ transaction });
+    }
+
+    // Simpan log ke RiwayatLog
     const user = await getUserInfo(req);
     if (user) {
       await RiwayatLog.create(
         {
           username: user.username,
           role: user.role,
-          description: `Menambahkan Status Produksi: ${namaProdukDariProdukModel} dengan Batch ${Batch}`,
+          description: `Menambahkan Status Produksi: ${namaProdukDariProdukModel} dengan Batch ${Batch}. Jumlah Produksi: ${JumlahProduksi} telah dikurangkan dari stok bahan baku.`,
         },
         { transaction }
       );
@@ -128,7 +163,7 @@ exports.createStatusProduksi = async (req, res) => {
     await transaction.commit();
     res.status(201).json({
       message: "StatusProduksi berhasil ditambahkan",
-      data: newItem,
+      data: newStatus,
     });
   } catch (error) {
     await transaction.rollback();
@@ -139,7 +174,10 @@ exports.createStatusProduksi = async (req, res) => {
   }
 };
 
-// UPDATE StatusProduksi dengan transaksi dan log Riwayat
+/**
+ * UPDATE Status Produksi
+ * API: PATCH /status-produksi/:id
+ */
 exports.updateStatusProduksi = async (req, res) => {
   const transaction = await sequelize.transaction();
   try {
@@ -151,12 +189,13 @@ exports.updateStatusProduksi = async (req, res) => {
       NamaProduk,
       Batch,
       Satuan,
-      JumlahProduksi,
+      JumlahProduksi: newJumlahProduksi, // nilai baru
       StatusProduksi,
     } = req.body;
 
-    const item = await StatusProduksiModel.findByPk(id, { transaction });
-    if (!item) {
+    // Ambil record StatusProduksi yang ada
+    const statusItem = await StatusProduksiModel.findByPk(id, { transaction });
+    if (!statusItem) {
       await transaction.rollback();
       return res
         .status(404)
@@ -179,17 +218,63 @@ exports.updateStatusProduksi = async (req, res) => {
       });
     }
 
-    // Update field
-    item.KodeProduksi = KodeProduksi;
-    item.TanggalProduksi = TanggalProduksi;
-    item.TanggalSelesai = TanggalSelesai;
-    item.NamaProduk = NamaProduk;
-    item.Batch = Batch;
-    item.Satuan = Satuan;
-    item.JumlahProduksi = JumlahProduksi;
-    item.StatusProduksi = StatusProduksi;
+    // Hitung perbedaan JumlahProduksi antara nilai baru dan lama
+    const oldJumlah = parseFloat(statusItem.JumlahProduksi) || 0;
+    const newJumlah = parseFloat(newJumlahProduksi) || 0;
+    const difference = newJumlah - oldJumlah; // jika positif: produksi bertambah, jika negatif: berkurang
 
-    await item.save({ transaction });
+    // Update record StatusProduksi
+    statusItem.KodeProduksi = KodeProduksi;
+    statusItem.TanggalProduksi = TanggalProduksi;
+    statusItem.TanggalSelesai = TanggalSelesai;
+    statusItem.NamaProduk = NamaProduk;
+    statusItem.Batch = Batch;
+    statusItem.Satuan = Satuan;
+    statusItem.JumlahProduksi = newJumlahProduksi;
+    statusItem.StatusProduksi = StatusProduksi;
+    await statusItem.save({ transaction });
+
+    // Ambil ProdukModel berdasarkan KodeProduksi
+    const foundProduct = await ProdukModel.findOne({
+      where: { KodeProduksi },
+      transaction,
+    });
+    if (!foundProduct) {
+      await transaction.rollback();
+      return res.status(404).json({
+        message: "Produk dengan KodeProduksi tersebut tidak ditemukan",
+      });
+    }
+
+    // Sesuaikan stok pada StokBahanBakuModel berdasarkan perbedaan produksi
+    const produkBahanBakus = await ProdukBahanBakuModel.findAll({
+      where: { produkId: foundProduct.id },
+      transaction,
+    });
+
+    for (let pb of produkBahanBakus) {
+      const usage = parseFloat(pb.jumlah) || 0;
+      const adjustment = difference * usage; // positif jika produksi naik, negatif jika turun
+      const stokRecord = await StokBahanBaku.findOne({
+        where: { BahanBakuId: pb.bahanBakuId },
+        transaction,
+      });
+      if (!stokRecord) {
+        await transaction.rollback();
+        return res.status(404).json({
+          message: `Stok untuk bahan baku dengan ID ${pb.bahanBakuId} tidak ditemukan`,
+        });
+      }
+      if (adjustment > 0 && stokRecord.Stok < adjustment) {
+        await transaction.rollback();
+        return res.status(400).json({
+          message: `Stok untuk bahan baku "${stokRecord.BahanBaku}" pada produksi "${NamaProduk}" kurang, Silahkan Tambahkan Stok Bahan Baku`,
+        });
+      }
+      // Jika difference negatif, artinya produksi berkurang, sehingga stok ditambah kembali
+      stokRecord.Stok = stokRecord.Stok - adjustment;
+      await stokRecord.save({ transaction });
+    }
 
     // Simpan log Riwayat
     const user = await getUserInfo(req);
@@ -198,7 +283,7 @@ exports.updateStatusProduksi = async (req, res) => {
         {
           username: user.username,
           role: user.role,
-          description: `Mengupdate Status Produksi: ${NamaProduk} dengan Batch ${Batch}`,
+          description: `Mengupdate Status Produksi: ${NamaProduk} dengan Batch ${Batch}. Perubahan Jumlah Produksi: ${difference}.`,
         },
         { transaction }
       );
@@ -207,7 +292,7 @@ exports.updateStatusProduksi = async (req, res) => {
     await transaction.commit();
     res.status(200).json({
       message: "StatusProduksi berhasil diperbarui",
-      data: item,
+      data: statusItem,
     });
   } catch (error) {
     await transaction.rollback();
