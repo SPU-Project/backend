@@ -110,6 +110,20 @@ exports.createPenjualanProduk = async (req, res) => {
       });
     }
 
+    const statusData2 = await PenjualanProdukModel.findOne({
+      where: {
+        NamaProduk,
+        Batch,
+        Margin,
+      },
+    });
+    if (statusData2) {
+      return res.status(404).json({
+        message:
+          "NamaProduk yang anda masukkan sudah ada, Harap mengganti dengan NamaProduk yang lain",
+      });
+    }
+
     // Dapatkan JumlahProduksi (string, konversi ke number)
     const { JumlahProduksi } = statusData;
     const jumlahProdNum = Number(JumlahProduksi) || 0;
