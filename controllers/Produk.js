@@ -368,7 +368,7 @@ const getAllProdukBahanBaku = async (req, res) => {
         {
           model: BahanBakuModel,
           as: "bahanbakumodel",
-          attributes: ["id", "BahanBaku", "Harga"],
+
           through: {
             model: ProdukBahanBakuModel,
             attributes: ["jumlah"],
