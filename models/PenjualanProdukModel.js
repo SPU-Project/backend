@@ -1,60 +1,57 @@
 const { Sequelize } = require("sequelize"); // Perbaiki spasi di sini
 const db = require("../config/Database.js");
 
-const Admin = db.define(
-  "Admin",
+const PenjualanProdukModel = db.define(
+  "PenjualanProdukModel",
   {
-    id: {
-      type: Sequelize.DataTypes.INTEGER,
-      autoIncrement: true,
-      primaryKey: true,
-      allowNull: false,
-    },
-    uuid: {
+    NamaProduk: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      defaultValue: Sequelize.DataTypes.UUIDV4,
-      allowNull: false,
+      allowNull: true,
+      unique: false,
       validate: {
         notEmpty: true,
       },
     },
-    email: {
+    Batch: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true,
-        isEmail: true,
-      },
-    },
-    password: {
-      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: false,
+      allowNull: true,
       validate: {
         notEmpty: true,
       },
     },
-    username: {
+    JumlahProduksi: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: false,
-      unique: true,
-      validate: {
-        notEmpty: true,
-      },
-    },
-    profileImage: {
-      // Tambahkan kolom untuk menyimpan path gambar
-      type: Sequelize.DataTypes.STRING,
       allowNull: true,
       validate: {
         notEmpty: false,
       },
     },
-    role: {
+    Margin: {
       type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
-      allowNull: false,
+      allowNull: true,
       validate: {
-        notEmpty: true,
+        notEmpty: false,
+      },
+    },
+    Terjual: {
+      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
+      allowNull: true,
+      validate: {
+        notEmpty: false,
+      },
+    },
+    HargaSatuan: {
+      type: Sequelize.DataTypes.DECIMAL(10, 3), // Gunakan Sequelize.DataTypes di sini
+      allowNull: true,
+      validate: {
+        notEmpty: false,
+      },
+    },
+    Pendapatan: {
+      type: Sequelize.DataTypes.DECIMAL(10, 3), // Gunakan Sequelize.DataTypes di sini
+      allowNull: true,
+      validate: {
+        notEmpty: false,
       },
     },
   },
@@ -63,4 +60,4 @@ const Admin = db.define(
   }
 );
 
-module.exports = Admin;
+module.exports = PenjualanProdukModel;

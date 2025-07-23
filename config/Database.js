@@ -12,6 +12,13 @@ const config = {
     host: "localhost",
     dialect: "postgres",
   },
+  development2: {
+    username: "root",
+    password: "",
+    database: "spuofficial",
+    host: "localhost",
+    dialect: "mysql",
+  },
   production: {
     host: "apiv2.pabrikbumbu.com",
     username: "panganutama_admin",

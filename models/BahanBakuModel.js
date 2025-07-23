@@ -1,18 +1,34 @@
+// models/BahanBakuModel.js
+
 const { Sequelize } = require("sequelize");
 const db = require("../config/Database.js");
 
 const BahanBakuModel = db.define(
   "bahanbakumodel",
   {
+    id: {
+      type: Sequelize.DataTypes.INTEGER,
+      primaryKey: true,
+      autoIncrement: true,
+    },
     BahanBaku: {
-      type: Sequelize.DataTypes.STRING, // Gunakan Sequelize.DataTypes di sini
+      type: Sequelize.DataTypes.STRING,
       allowNull: false,
+      unique: true, // Ensure uniqueness
       validate: {
         notEmpty: true,
       },
     },
+    Satuan: {
+      type: Sequelize.DataTypes.STRING,
+      // allowNull: true,
+      // unique: false, // Ensure uniqueness
+      // validate: {
+      //   notEmpty: true,
+      // },
+    },
     Harga: {
-      type: Sequelize.DataTypes.INTEGER, // Gunakan Sequelize.DataTypes di sini
+      type: Sequelize.DataTypes.FLOAT,
       allowNull: false,
       validate: {
         notEmpty: true,

@@ -1,10 +1,9 @@
 // models/KemasanModel.js
 const { Sequelize } = require("sequelize");
 const db = require("../config/Database.js");
-const ProdukModel = require("../models/ProdukModel.js");
 
 const KemasanModel = db.define(
-  "kemasan",
+  "KemasanModel",
   {
     namaKemasan: {
       type: Sequelize.DataTypes.STRING,
@@ -14,7 +13,7 @@ const KemasanModel = db.define(
       },
     },
     harga: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
       allowNull: false,
       validate: {
         notEmpty: true,
@@ -25,9 +24,5 @@ const KemasanModel = db.define(
     freezeTableName: true,
   }
 );
-
-// Relasi Kemasan dengan Produk
-KemasanModel.belongsTo(ProdukModel);
-ProdukModel.hasMany(KemasanModel);
 
 module.exports = KemasanModel;

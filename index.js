@@ -4,6 +4,8 @@ const session = require("express-session");
 const dotenv = require("dotenv");
 const db = require("./config/Database.js");
 const SequelizeStore = require("connect-session-sequelize");
+
+// Import models
 const Admin = require("./models/AdminModel.js");
 const BahanBakuModel = require("./models/BahanBakuModel.js");
 const KemasanModel = require("./models/KemasanModel.js");
@@ -11,21 +13,32 @@ const OverheadModel = require("./models/OverheadModel.js");
 const ProdukBahanBakuModel = require("./models/ProdukBahanBakuModel.js");
 const ProdukModel = require("./models/ProdukModel.js");
 const RiwayatLog = require("./models/RiwayatLog.js");
+const StokBahanBaku = require("./models/StokBahanBakuModel.js");
+const StatusProduksiModel = require("./models/StatusProduksiModel.js");
+const PenjualanProdukModel = require("./models/PenjualanProdukModel.js");
 
-// route
+require("./models/association.js");
+
+// Import routes
 const AuthRoute = require("./routes/AuthRoute.js");
 const AdminRoute = require("./routes/AdminRoute.js");
 const BahanBakuRoute = require("./routes/BahanBakuRoute.js");
 const ProdukRoute = require("./routes/ProdukRoute.js");
 const uploadRoute = require("./routes/uploadRoute.js");
 const RiwayatRoute = require("./routes/RiwayatRoute.js");
+const StokBahanBakuRoute = require("./routes/StokBahanBakuRoute.js");
+const StatusProduk = require("./routes/StatusProduk.js");
+const PenjualanProduk = require("./routes/PenjualanProduk.js");
 
 //Test Connection Cpanel
 dotenv.config();
 
 const app = express();
+const cronStatusProduksi = require("./utils/cronStatusProduksi.js");
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+cronStatusProduksi();
 
 const sessionStore = SequelizeStore(session.Store);
 const store = new sessionStore({
@@ -34,6 +47,7 @@ const store = new sessionStore({
   checkExpirationInterval: 10080 * 60 * 1000,
 });
 
+// Database synchronization
 // Immediately Invoked Function Expression (IIFE) to handle database operations
 (async function () {
   try {
@@ -50,6 +64,9 @@ const store = new sessionStore({
     await OverheadModel.sync({ alter: true });
     await KemasanModel.sync({ alter: true });
     await RiwayatLog.sync({ alter: true });
+    await StokBahanBaku.sync({ alter: true });
+    await StatusProduksiModel.sync({ alter: true });
+    await PenjualanProdukModel.sync({ alter: true });
 
     console.log("Database synced...");
   } catch (error) {
@@ -100,6 +117,9 @@ app.use(ProdukRoute);
 app.use("/uploads", express.static("uploads")); // Untuk melayani file gambar yang diunggah
 app.use(uploadRoute);
 app.use(RiwayatRoute);
+app.use(StokBahanBakuRoute);
+app.use(StatusProduk);
+app.use(PenjualanProduk);
 
 store.sync();
 

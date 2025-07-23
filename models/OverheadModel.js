@@ -1,10 +1,9 @@
 // models/OverheadModel.js
 const { Sequelize } = require("sequelize");
 const db = require("../config/Database.js");
-const ProdukModel = require("./ProdukModel.js");
 
 const OverheadModel = db.define(
-  "overhead",
+  "OverheadModel",
   {
     namaOverhead: {
       type: Sequelize.DataTypes.STRING,
@@ -14,7 +13,7 @@ const OverheadModel = db.define(
       },
     },
     harga: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.DECIMAL(10, 3),
       allowNull: false,
       validate: {
         notEmpty: true,
@@ -25,9 +24,5 @@ const OverheadModel = db.define(
     freezeTableName: true,
   }
 );
-
-// Relasi Overhead dengan Produk
-OverheadModel.belongsTo(ProdukModel);
-ProdukModel.hasMany(OverheadModel);
 
 module.exports = OverheadModel;

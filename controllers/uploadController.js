@@ -1,6 +1,7 @@
 // controllers/uploadController.js
 
 const Admin = require("../models/AdminModel.js");
+const RiwayatLog = require("../models/RiwayatLog.js"); // Tambahkan ini
 const path = require("path");
 const fs = require("fs").promises; // Menggunakan fs dengan promises
 
@@ -19,8 +20,16 @@ const uploadProfileImage = async (req, res) => {
       return res.status(404).json({ message: "Admin tidak ditemukan" });
     }
 
+    // Update field profileImage
     admin.profileImage = filePath;
     await admin.save();
+
+    // Simpan log ke RiwayatLog
+    await RiwayatLog.create({
+      username: admin.username,
+      role: admin.role,
+      description: `Mengunggah gambar profil`,
+    });
 
     res.status(200).json({
       message: "Gambar profil berhasil diunggah",
@@ -36,61 +45,33 @@ const uploadProfileImage = async (req, res) => {
 
 const getProfileImage = async (req, res) => {
   try {
-    // Tidak lagi memeriksa req.session.userId
-    // const userId = req.session.userId;
+    const userId = req.session.userId; // Ambil userId dari session
 
-    // Tidak lagi memeriksa apakah pengguna login
-    // if (!userId) {
-    //   return res.status(401).json({ message: "Anda belum login" });
-    // }
+    if (!userId) {
+      return res.status(401).json({ message: "Anda belum login" });
+    }
 
-    // Tidak lagi mencari admin berdasarkan userId
-    // const admin = await Admin.findByPk(userId);
+    // Cari admin berdasarkan userId
+    const admin = await Admin.findByPk(userId);
+    if (!admin || !admin.profileImage) {
+      // Jika admin tidak ditemukan atau tidak memiliki gambar profil
+      const defaultImagePath = path.join(
+        __dirname,
+        "..",
+        "uploads",
+        "default-profile-image.png"
+      );
+      return res.status(200).sendFile(defaultImagePath);
+    }
 
-    // Tentukan direktori tempat gambar disimpan
-    const imagesDirectory = path.join(
-      __dirname,
-      "..",
-      "uploads",
-      "profile-images"
-    );
+    // Tentukan path gambar profil
+    const profileImagePath = path.join(__dirname, "..", admin.profileImage);
 
-    // Pastikan direktori ada, jika tidak, lanjutkan
+    // Pastikan file gambar ada
     try {
-      await fs.access(imagesDirectory);
+      await fs.access(profileImagePath);
     } catch (error) {
-      // Jika direktori tidak ada, lanjutkan tanpa error
-    }
-
-    // Baca semua file dalam direktori
-    let files = [];
-    try {
-      files = await fs.readdir(imagesDirectory);
-    } catch (error) {
-      // Jika gagal membaca direktori, lanjutkan tanpa error
-    }
-
-    // Jika tidak ada file, kirim gambar default atau respons kosong
-    if (!files || files.length === 0) {
-      // Tentukan path gambar default
-      const defaultImagePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "default-profile-image.png"
-      );
-      // Kirim gambar default sebagai respons
-      return res.status(200).sendFile(defaultImagePath);
-    }
-
-    // Filter file berdasarkan ekstensi gambar (opsional)
-    const imageExtensions = [".jpg", ".jpeg", ".png", ".gif"];
-    const imageFiles = files.filter((file) => {
-      return imageExtensions.includes(path.extname(file).toLowerCase());
-    });
-
-    // Jika tidak ada file gambar, kirim gambar default
-    if (!imageFiles || imageFiles.length === 0) {
+      // Jika file tidak ditemukan, kirim gambar default
       const defaultImagePath = path.join(
         __dirname,
         "..",
@@ -100,35 +81,11 @@ const getProfileImage = async (req, res) => {
       return res.status(200).sendFile(defaultImagePath);
     }
 
-    // Temukan file gambar terbaru berdasarkan ctimeMs
-    let latestFile;
-    let latestTime = 0;
-
-    for (const file of imageFiles) {
-      const filePath = path.join(imagesDirectory, file);
-      const stats = await fs.stat(filePath);
-      if (stats.ctimeMs > latestTime) {
-        latestTime = stats.ctimeMs;
-        latestFile = filePath;
-      }
-    }
-
-    // Jika tidak menemukan file terbaru, kirim gambar default
-    if (!latestFile) {
-      const defaultImagePath = path.join(
-        __dirname,
-        "..",
-        "uploads",
-        "default-profile-image.png"
-      );
-      return res.status(200).sendFile(defaultImagePath);
-    }
-
-    // Kirim file gambar terbaru sebagai respons
-    res.status(200).sendFile(path.resolve(latestFile));
+    // Kirim file gambar profil sebagai respons
+    res.status(200).sendFile(profileImagePath);
   } catch (error) {
     console.error("Error saat mendapatkan gambar profil:", error);
-    // Tetap mengembalikan gambar default jika terjadi error
+    // Jika terjadi error, kirim gambar default
     const defaultImagePath = path.join(
       __dirname,
       "..",
