@@ -76,6 +76,7 @@ const store = new sessionStore({
 
 const allowedOrigins = [
   "https://produksi.pabrikbumbu.com",
+  "https://apiv2.pabrikbumbu.com",
   "http://localhost:5000",
 ];
 
@@ -102,6 +103,7 @@ app.use(
     cookie: {
       // Gunakan true jika menggunakan HTTPS
       sameSite: "none", // Penting untuk CORS dengan kredensial
+      secure: false, // Harus diaktifkan untuk HTTPS
       domain: ".pabrikbumbu.com",
       httpOnly: true,
       maxAge: 10080 * 60 * 1000,
