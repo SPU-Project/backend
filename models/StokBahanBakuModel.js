@@ -25,7 +25,7 @@ const StokBahanBaku = db.define(
       allowNull: true,
     },
     Stok: {
-      type: Sequelize.DataTypes.INTEGER,
+      type: Sequelize.DataTypes.FLOAT,
       allowNull: true,
     },
     TanggalPembaruan: {

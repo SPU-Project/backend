@@ -92,80 +92,103 @@ const addBahanBaku = async (req, res) => {
 
 //Read
 const updateBahanBaku = async (req, res) => {
-  // Start a transaction
+  // Mulai transaksi
   const transaction = await sequelize.transaction();
 
   try {
     const { id } = req.params;
-    const { BahanBaku, Satuan, Harga } = req.body;
+    let { BahanBaku: newName, Satuan: newSatuan, Harga: newHarga } = req.body;
 
-    // Validasi: Pastikan Satuan maksimal 3 huruf
-    if (!/^[A-Za-z]{1,3}$/.test(Satuan)) {
-      return res.status(400).json({
-        message: "Satuan harus terdiri dari maksimal 3 huruf saja",
-      });
-    }
-
+    // Cari record bahan baku
     const bahanBaku = await BahanBakuModel.findByPk(id, { transaction });
     if (!bahanBaku) {
       await transaction.rollback();
       return res.status(404).json({ message: "Bahan Baku tidak ditemukan" });
     }
 
-    // Save old data for logging
-    const oldBahanBaku = bahanBaku.BahanBaku;
+    // Fallback ke data lama jika request kosong atau undefined
+    newName    = newName    && newName.trim()    !== "" ? newName    : bahanBaku.BahanBaku;
+    newSatuan  = newSatuan  && newSatuan.trim()  !== "" ? newSatuan  : bahanBaku.Satuan;
+    newHarga   = newHarga   != null                ? newHarga   : bahanBaku.Harga;
 
-    // Update fields in BahanBakuModel
-    bahanBaku.BahanBaku = BahanBaku;
-    bahanBaku.Harga = Harga;
-    bahanBaku.Satuan = Satuan;
+    // Validasi: Satuan maksimal 3 huruf
+    if (!/^[A-Za-z]{1,3}$/.test(newSatuan)) {
+      await transaction.rollback();
+      return res.status(400).json({
+        message: "Satuan harus terdiri dari maksimal 3 huruf saja",
+      });
+    }
 
+    // Simpan old value untuk log
+    const oldName = bahanBaku.BahanBaku;
+
+    // Update bahan baku
+    bahanBaku.BahanBaku = newName;
+    bahanBaku.Satuan    = newSatuan;
+    bahanBaku.Harga     = newHarga;
     await bahanBaku.save({ transaction });
 
-    // Update the corresponding StokBahanBaku
-    const stokBahanBaku = await StokBahanBaku.findOne({
+    // Upsert stok bahan baku
+    const [stok, created] = await StokBahanBaku.findOrCreate({
       where: { BahanBakuId: id },
+      defaults: {
+        BahanBakuId: id,
+        BahanBaku:   newName,
+        Satuan:      newSatuan,
+        Harga:       newHarga,
+        // TanggalPembaruan otomatis kalau ada hook di model
+      },
       transaction,
     });
 
-    if (stokBahanBaku) {
-      stokBahanBaku.BahanBaku = BahanBaku;
-      stokBahanBaku.TanggalPembaruan = new Date();
-      await stokBahanBaku.save({ transaction });
+    if (!created) {
+      // Kalau sudah ada, cek perubahan data
+      const isSame =
+        stok.BahanBaku === newName &&
+        stok.Satuan    === newSatuan &&
+        stok.Harga     === newHarga;
+
+      if (!isSame) {
+        // Data berbeda → overwrite semua field
+        stok.BahanBaku      = newName;
+        stok.Satuan         = newSatuan;
+        stok.Harga          = newHarga;
+      }
+      // Selalu update tanggal pembaruan
+      stok.TanggalPembaruan = new Date();
+      await stok.save({ transaction });
     }
 
-    // Get user info
+    // Ambil user untuk logging
     const user = await getUserInfo(req);
-
-    // Save log to RiwayatLog
     if (user) {
       await RiwayatLog.create(
         {
-          username: user.username,
-          role: user.role,
-          description: `Mengupdate Bahan Baku dari ${oldBahanBaku} ke ${BahanBaku}`,
+          username:    user.username,
+          role:        user.role,
+          description: `Update Bahan Baku dari "${oldName}" → "${newName}"`,
         },
         { transaction }
       );
     }
 
-    // Commit the transaction
+    // Commit transaksi
     await transaction.commit();
 
-    res.status(200).json({
-      message: "Bahan Baku Berhasil Diupdate",
-      data: bahanBaku,
+    return res.status(200).json({
+      message: "Bahan Baku berhasil diupdate",
+      data:    bahanBaku,
     });
   } catch (error) {
-    // Rollback the transaction in case of error
     await transaction.rollback();
-    console.error("Error updating Bahan Baku:", error.message);
+    console.error("Error updating Bahan Baku:", error);
     return res.status(500).json({
       message: "Internal Server Error",
-      error: error.message,
+      error:   error.message,
     });
   }
 };
+
 
 const deleteBahanBaku = async (req, res) => {
   // Start a transaction
